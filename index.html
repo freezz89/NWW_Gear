@@ -3315,11 +3315,11 @@ function renderEd(host){
       <label class="f">阶<select id="e_st">${Object.entries(ST).map(([k,v])=>`<option value="${k}"${k===it.st?' selected':''}>${v}</option>`).join('')}</select></label>
       <label class="f">转律位<select id="e_zl">${[0,1,2,3,4].map(i=>`<option value="${i}"${i===(+it.zl||0)?' selected':''}>${i?'已转在律'+i:'未用'}</option>`).join('')}</select></label>
     </div>
-    ${smp&&smpImg?`<div class="ocr" id="e_ocr">
+    ${true?`<div class="ocr" id="e_ocr">
       <div class="ocrL"><b>截图识别</b><span class="hint">把游戏里的装备截图 <b>Ctrl+V 贴到这里</b>，或</span>
         <button id="e_pick">选图片</button>
         <input type="file" id="e_file" accept="image/png,image/jpeg,image/webp" hidden>
-        <span class="hint">识别完<b>只会填表，不会自动保存</b> —— 请逐条核对</span></div>
+        <span class="hint">本机识别（第一次要联网下载字库），<b>只会填表，不会自动保存</b> —— 识别会有错，请逐条核对</span></div>
       <div class="ocrM" id="e_ocrMsg"></div></div>`:''}
     <div class="ed" style="margin-top:8px">${[0,1,2,3,4].map(i=>`<div class="row ${i===0?'pei':''}">
       <span class="lb">${i===0?'胚':'律'+i}</span>
@@ -3338,7 +3338,7 @@ function renderEd(host){
   /* 装备自带（最小/最大攻击、气血、外防）不再手填（用户 2026-11-07）：按阶位表自动取，紫装 ×0.9。
      库里已经存的自带值原样保留，只在「紫装」勾选变了的时候清掉重算。 */
   const upName=()=>{$('e_nm').textContent=nameFor(it,$('e_slot').value,$('e_st').value)};
-  if(smp&&smpImg){const msg=$('e_ocrMsg'),zone=$('e_ocr');
+  if(true){const msg=$('e_ocrMsg'),zone=$('e_ocr');
     const go=b2=>{if(b2)runOCR(b2,msg)};
     $('e_pick').onclick=()=>$('e_file').click();
     $('e_file').onchange=e2=>go(e2.target.files&&e2.target.files[0]);
