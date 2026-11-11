@@ -708,6 +708,7 @@ const XFNOTE={
  '霜天白夜':'最小外功攻击提升（随赛季）、直接会心率+4.6%　[金]',
  '扶摇直上':'最小外功攻击提升（随赛季）、直接会心率+4.6%　[金]',
  '一醉千秋':'最小外功攻击提升（随赛季）、直接会心率+4.6%　[金]',
+ '相和歌':'最小外功攻击提升（随赛季）、直接会心率+4.6%　[金]',
  '婆娑影':'精准率提升（随赛季）、外功伤害减免+2.5%',
  '穿喉诀':'裂石攻击提升（随赛季，当前 14.3~28.5）、裂石穿透+6',
  '燎原踏':'外功攻击提升（随赛季）、外功伤害加成+2.5%'};
@@ -2277,7 +2278,7 @@ const WXT={
   '十方破阵':{sy:'lieshi',f:[['crit','min',9.1]],p:['pen','selfMin']},
   '积矩九剑':{sy:'mingjin',f:[['intent','jin',4.6]],p:['pen','selfMax']},
   '九曲惊神枪':{sy:'mingjin',f:[['maxA','jin',79.2]],p:['dmg','selfMax']},
-  '无名剑法':{sy:'mingjin',f:null},'无名枪法':{sy:'mingjin',f:null},
+  '无名剑法':{sy:'mingjin',f:[['maxA','shi',79.2]],p:['pen','selfMax']},'无名枪法':{sy:'mingjin',f:[['intent','shi',4.6]],p:['dmg','selfMax']},
   '九重春色':{sy:'qiansi',f:[['crit','min',9.1]],p:['pen','selfMin']},
   '青山执笔':{sy:'qiansi',f:[['minA','min',79.2]],p:['dmg','selfMin']},
   '千香引魂蛊':{sy:'qiansi',f:[['minA','min',79.2]],p:['pen','selfMin']},
@@ -2285,8 +2286,8 @@ const WXT={
   '杏游草野':{sy:'qiansi',f:null},'文动霓裳':{sy:'qiansi',f:null},
   '天志垂象':{sy:'pozhu',f:[['minA','min',79.2]],p:['dmg','selfMin']},
   '千机索天':{sy:'pozhu',f:[['crit','min',9.1]],p:['pen','selfMin']},
-  '粟子游尘':{sy:'pozhu',f:null},'泥犁三垢':{sy:'pozhu',f:null},'粟子行云':{sy:'pozhu',f:[['crit','min',9.1]],p:['dmg','selfMin']},
-  '醉梦游春':{sy:'pozhu',f:[['minA','min',79.2]],p:['pen','selfMin']},'断水双诀':{sy:'pozhu',f:null},'悬身拳法':{sy:'pozhu',f:null}};
+  '粟子游尘':{sy:'pozhu',f:[['crit','min',9.1]],p:['dmg','selfMin']},'泥犁三垢':{sy:'pozhu',f:[['minA','min',79.2]],p:['pen','selfMin']},'粟子行云':{sy:'pozhu',f:[['crit','min',9.1]],p:['dmg','selfMin']},
+  '醉梦游春':{sy:'pozhu',f:[['minA','min',79.2]],p:['pen','selfMin']},'断水双诀':{sy:'pozhu',f:[['crit','min',9.1]],p:['pen','selfMin']},'悬身拳法':{sy:'pozhu',f:[['minA','min',79.2]],p:['dmg','selfMin']}};
 const CALCN={get selfMax(){return '最大'+SYS[sc().sys]+'攻击'},get selfMin(){return '最小'+SYS[sc().sys]+'攻击'},pTi:'体',pJin:'劲',pYu:'御',pMin:'敏',pShi:'势',maxA:'最大外功攻击',minA:'最小外功攻击',
   hp:'气血最大值',def:'外功防御',accW:'精准率（白字）',critW:'会心率（白字）',intentW:'会意率（白字）',
   zjCrit:'直接会心率',zjIntent:'直接会意率',pen:'外功穿透',spen:'属攻穿透'};
@@ -2308,7 +2309,7 @@ function calcPanel(){
   c.wx.forEach((w,i)=>{const W=WXT[w];if(!w||!W)return;const t13=!!c.w13[i];
     if(!W.f){talTxt.push(['?',w+' 的天赋还没录，没算',0]);return}
     W.f.forEach(([k,by,full])=>{const v=by==='tiJin'?Math.max(cur.ti,cur.jin):cur[by],cap=t13?280:300;
-      const got=full/300*Math.min(v,cap);tadd(k,got,`${w}·${TN(k)||k}：${fmt(full,1)} × min(${by==='tiJin'?'体/劲较大值':by==='jin'?'劲':'敏'} ${fmt(v,0)}, ${cap}) ÷ 300`)});
+      const got=full/300*Math.min(v,cap);tadd(k,got,`${w}·${TN(k)||k}：${fmt(full,1)} × min(${by==='tiJin'?'体/劲较大值':by==='jin'?'劲':by==='shi'?'势':'敏'} ${fmt(v,0)}, ${cap}) ÷ 300`)});
     const s=t13?[98,196]:[106,212];if(!selfT||s[0]>selfT[0])selfT=s;
     if(W.p&&W.p[0]==='pen'){const by=W.p[1],cap=(by==='selfMax'?703:352)*(t13?328/352:1);
       const v=B[by]!=null?B[by]:null;
