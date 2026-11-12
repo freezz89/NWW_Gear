@@ -730,13 +730,14 @@ const SCHOOLS=[
   g105j:{acc:98,crit:56,intent:15.5,self:900,maxA:4200,minA:2000},
   // 肉坦（2026-11-12 你定，总档 6.6b）：气血/体/御/外防 同等（防御类）；劲 = 最大外功；三率按大外 98/56/15.5；
   // 神力 = 陌刀增伤 + 全武学×2 + 玩家增效×2；胚能拿防御类就先拿（只有 4 件防具能拿气血/外防胚）。
-  // 合计 防御类19 会心8（转律）神力5 最大外功4 精准2 会意2 = 40。天赋要「体/劲较大值」≥300：防御类里至少 3 条体。
+  // 合计 防御类19 会心7（转律）劲1（腕甲转律位，=最大外功）神力5 最大外功4 精准2 会意2 = 40。
+  // 会心 7 条：精准弓 + 防御心法（三率 0）时，承音后 6 条只有 52.4，7 条 57.7（总档 6.6c，11-12 你定）。天赋要「体/劲较大值」≥300：防御类里至少 3 条体。
   // 旧定稿 X|CDHH…（陌刀两条气血，不成立）作废，备份在 yanyun-live.bak210.html。
   vars:[{n:'肉坦',own:1,set:'时雨',setD:'御无缺',bow:'精准弓',
          same:{ti:'hp',yu:'hp',def:'hp',jin:'maxA'},
          ok:['minA','min'],xf:['怒斩马','明晦同尘','丹心篆','铁身诀'],
-         note:'防御类（气血/体/御/外防）算同一种；至少留 3 条体给武学天赋；承音后精准、会意只多约 0.1，贴线',
-         L:'X|CDHt X|CHtF X|CQHt X|CQtF H|CAtF H|CAHt F|CPIt H|CPIt'},
+         note:'防御类（气血/体/御/外防）算同一种；至少留 3 条体给武学天赋；会心要 7 条（承音后 6 条不够）；弓用精准弓，会意承音后只多约 0.1',
+         L:'X|CDHt X|CHtF X|CQHt X|CQtF H|CAtF H|CAHt F|CPIt H|JPIt'},
         {n:'会心外攻',set:'时雨',bow:'会心弓',ok:['minA','min'],xf:['易水歌','山河绝韵','抗造大法','威猛歌'],
          L:'X|XJSD X|XJSI X|XJCQ X|XJAQ C|XJSC C|XJAT J|XJCP J|XJCP'},
         /* 110阶毕业配比（小十七 7.16 的表，2026-10-28 录入）。
@@ -3083,6 +3084,8 @@ function drawMx(){
   [...keys].filter(k=>k.startsWith('selfMax:')||k.startsWith('selfMin:')).sort().forEach(push);
   ['wxMax','wxMin','intent','qishuAll'].forEach(push);
   [...keys].filter(k=>k.startsWith('dmgW')).sort().forEach(push);
+  /* 11-12：防御类四列（气血/体/外防/御）只要有一行用到就整组显示，御没人用也列出来 */
+  if(['hp','ti','def','yu'].some(k=>keys.has(k)))['hp','ti','def','yu'].forEach(k=>{keys.add(k);push(k)});
   [...keys].forEach(push);
   const tl=g=>g.tiers.join('·');
   const dist=(a,b)=>{let d=0;const ks=new Set([...Object.keys(a.c),...Object.keys(b.c)]);ks.forEach(k=>d+=Math.abs((a.c[k]||0)-(b.c[k]||0)));return d};
