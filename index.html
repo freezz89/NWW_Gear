@@ -576,11 +576,14 @@ const isSp=t=>['dmgW','dmgW2','all','boss','pvp','qishu','qishuAll'].includes(t)
    攻击四件和防具四件、弓两件可以同时生效，所以三个下拉是独立的。 */
 const SETS={none:{n:'无 / 未设',k:'any'},
  shiyu:{n:'时雨',k:'atk',d:'精准率+9.3%（生效100，实测）'},duanyue:{n:'断岳',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},yudou:{n:'玉斗',k:'atk',d:'最大外功+91（生效100；同类型套装同数值）'},
- feizhun:{n:'飞隼',k:'atk',d:'会意率+4.5%'},
- yangui:{n:'燕归',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},lianxing:{n:'连星',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},hantian:{n:'撼天',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},hantian2:{n:'瀚天',k:'atk'},
+ feizhun:{n:'飞隼',k:'atk',d:'会意率+5.2%（18 级，11-13 你确认）'},
+ yangui:{n:'燕归',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},lianxing:{n:'连星',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},hantian:{n:'撼天',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},
  qingshang:{n:'倾觞',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},yanliu:{n:'烟柳',k:'atk',d:'精准率+9.3%（和时雨一样；徒弟那边生效等级未知，可能不是 9.3）'},
  caiyun:{n:'裁云',k:'atk',d:'最小外功+91（生效100；同类型套装同数值）'},huanhua:{n:'浣花',k:'atk',d:'会心率+10.4%（白字，生效100）'},
  yuwuque:{n:'御无缺',k:'arm',d:'外功防御+45（生效等级未知）'},yixiang:{n:'易相',k:'arm'},shangyi:{n:'尚义',k:'arm',d:'国际服 Honorbound：完美闪避后短时间减伤（官方写法）'},yingyang:{n:'鹰扬',k:'arm',d:'外功防御+45（生效97，实测）'},
+ /* 2026-11-13 从 greydust 补录（数值走 SETLV 随等级） */
+ jifeng:{n:'急风骤',k:'atk'},yueshan:{n:'岳山倾',k:'atk'},hanmang:{n:'寒芒',k:'atk'},
+ xuanjia:{n:'玄甲',k:'arm'},lixue:{n:'梨雪',k:'arm'},jiangning:{n:'江凝',k:'arm'},yingzhan:{n:'盈盏',k:'arm'},guiyue:{n:'桂月',k:'arm'},buzhihan:{n:'不知寒',k:'arm'},baoyu:{n:'抱玉',k:'arm'},lingbo:{n:'凌波步',k:'arm'},
  /* 弓三件（2026-10-27 用户卡面实测）。三把弓的二件套就是三率各一条。
     ⚠【数值随「生效等级」变，不是常数】同一把弓在不同生效等级给的数不一样：
         生效93    惊弦 4.5   饮羽 4.0   追影 2.2
@@ -619,7 +622,9 @@ const XINFA=['易水歌','山河绝韵','丹心篆','磐石诀','困兽心经','
  '三穷致知','君臣药','千丝蛊','花上月令','春雷篇','纵地摘星','一醉千秋','飞仙醉言','燕别云岫',
  '沙摆尾','山月无影','生龙活虎',
  '大卷微身','寸草心','相和歌','弦墨篇','风知意','天行健','灯儿亮','沧浪剑诀','指玄篇注',
- '移经易武','燎原星火','长生无相','归燕经','葫芦飞飞','婆娑影','燎原踏'];
+ '移经易武','燎原星火','长生无相','归燕经','葫芦飞飞','婆娑影','燎原踏',
+ /* 鸣金·霆（国际服未开，greydust 抄） */
+ '浮梁一夜','明非通判','神断青锋','岁星窃桃','月涌方圆'];
 /* 心法实测（用户游戏内卡面，牵丝那批 2026-10-26 补）。
    「直接会心/会意」是独立于会心率的一栏，不经判定抗性换算、也不吃黄字上限。
    易水歌、花上月令、君臣药给的都是 4.6% —— 这一档就是 4.6%，录入时见到别的数字要先怀疑。
@@ -655,6 +660,12 @@ const XINFA=['易水歌','山河绝韵','丹心篆','磐石诀','困兽心经','
 
    【属攻穿透】紫卡一律 +6（裂石/鸣金/破竹/牵丝/无相全部是 6），外功穿透才是 5.1。 */
 const XFNOTE={
+ /* 鸣金·霆 5 张（greydust，未实测；品质按数值推算） */
+ '浮梁一夜':'会意率提升（随赛季）、会意伤害加成+5.2%、望星时直接会意 3%（霆，条件）',
+ '明非通判':'外功攻击提升（随赛季）、外功伤害加成+2.5%、外功穿透+2（三重后+5）（霆）',
+ '神断青锋':'最大外功攻击提升（随赛季）、直接会意率+2.3%、决狱悬锋枪系列会意伤害加成（霆）　[金]',
+ '岁星窃桃':'无相攻击提升（随赛季）、无相穿透+6、武学技增伤 6%（霆）',
+ '月涌方圆':'最大外功攻击提升（随赛季）、直接会意率+2.3%（霆）　[金]',
  /* ===== 紫卡（2026-10-27 用户卡面实测，36 张）=====
     每张的格式都一样：一条「随单人模式等级提升」（卡面不写数字）+ 一条固定数值。 */
  '大卷微身':'无相攻击提升（随赛季）、无相穿透+6',
@@ -1811,7 +1822,7 @@ const RATES=[['acc','精准率'],['crit','会心率'],['intent','会意率']];
 /* 装备给的三率白字。除了三率词条本身，敏和势也换算成三率（五维换算表）：
    1敏 = 0.076% 会心，1势 = 0.038% 会意（2026-11-12 改：三个外部来源一致；旧值 0.081/0.035）。全部进白字 —— 黄字那边没有任何加项，
    这点用两份敏差 3 倍的面板验过：黄字始终等于 白字÷1.85，误差 ±0.05。 */
-const MIN2CRIT=0.076, SHI2INT=0.038, JIN2MAX=1.36, JIN2MIN=0.225, TI2HP=60, YU2HP=17, YU2DEF=0.5;
+const MIN2CRIT=0.076, SHI2INT=0.038, JIN2MAX=1.36, JIN2MIN=0.22 /* 11-13 你定：片雲、greydust 都写 0.22，你的面板也贴 0.22（原 0.225） */, TI2HP=60, YU2HP=17, YU2DEF=0.57; /* 11-13 你定：用 greydust 的 0.57（原 0.5） */
 function rateGear(){const g={acc:0,crit:0,intent:0},x={min:0,shi:0};
   SLOTS.forEach(k=>{const it=byId((LO().equip||{})[k]);if(!it)return;
     it.affixes.forEach(a=>{if(g[a.t]!=null)g[a.t]+=+a.v||0;if(x[a.t]!=null)x[a.t]+=+a.v||0})});
@@ -2298,11 +2309,124 @@ const BASETAB={ // 朋友表各列，已扣掉表里含的武库（含五维底�
   '95下':{maxA:1419.08,minA:780.89,selfMax:91,selfMin:46,acc:94,crit:30.4,intent:15.2}};
 /* 基本盘按单人模式等级叫（11-12 你定：上/下的差别在武库、装备、叠音，基本盘本身一样） */
 /* 11-12：按单人模式等级选（你给的游戏截图）。十八级·知微 = 朋友表「100下」；十九级·照幽 还没开放 */
-const LEVELS=[{lv:16,n:'十六级·开明',col:'95下',note:'推测对应朋友表 95下'},{lv:17,n:'十七级·鸿法',col:'100上'},{lv:18,n:'十八级·知微（作者面板反推）',col:'我18'},{lv:18,n:'十八级·知微（朋友表 100下）',col:'100下'},{lv:19,n:'十九级·照幽（可能 105，未确认）',col:null,closed:1}];
+/* ===== 11-13 基本盘分层（国际服社区数据 greydust/where-builds-meet，GPL-3.0，只取数字；总档 11.8）=====
+   每个单人等级都按「满值」：等级 + 突破 + 通用天赋 + 蹊跷 + 五维底子换算；叠音、武库另填（空着 = 用该级满值） */
+const LV0={acc:65,minA:263,maxA:505,hp:101929};
+const SOLO={
+ 17:{n:'十七级·鸿法',bt:{five:150,acc:16.5,minA:0,maxA:0,hp:0,def:0},tal:{five:19,acc:16.5,crit:24,intent:12,minA:105.6,maxA:105.6,hp:7000,def:92.4,wx:13.2},dy:{minA:240,maxA:480,hp:40070,def:120},wk:{min:131,max:263,hp:27300},jr:65,tier:96},
+ 18:{n:'十八级·知微',bt:{five:164,acc:17.8,minA:14,maxA:28,hp:3500,def:7},tal:{five:23,acc:16.5,crit:24,intent:12,minA:105.6,maxA:105.6,hp:8000,def:105.6,wx:26.4},dy:{minA:258,maxA:516,hp:43147,def:130},wk:{min:148,max:297,hp:31700},jr:85,tier:100},
+ 19:{n:'十九级·照幽',bt:{five:178,acc:19.2,minA:30,maxA:60,hp:7400,def:15},tal:{five:27,acc:16.5,crit:24,intent:12,minA:118.8,maxA:118.8,hp:8500,def:112.2,wx:39.6},dy:{minA:276,maxA:552,hp:46223,def:138},wk:{min:148,max:297,hp:31700},jr:85,tier:100},
+ 20:{n:'二十级',bt:{five:192,acc:20.7,minA:48,maxA:96,hp:11600,def:24},tal:{five:30,acc:18,crit:24,intent:12,minA:118.8,maxA:118.8,hp:9500,def:125.4,wx:52.8},dy:{minA:294,maxA:588,hp:49437,def:148},wk:{min:165,max:331,hp:39100},jr:115,tier:105},
+ 21:{n:'二十一级',bt:{five:208,acc:22.3,minA:66,maxA:132,hp:16300,def:33},tal:{five:34,acc:18,crit:24,intent:12,minA:132,maxA:132,hp:10000,def:132,wx:66},dy:{minA:312,maxA:624,hp:52648,def:156},wk:{min:165,max:331,hp:39100},jr:115,tier:105},
+ 22:{n:'二十二级',bt:{five:224,acc:23.9,minA:84,maxA:168,hp:21000,def:42},tal:{five:37,acc:19.5,crit:24,intent:12,minA:145.2,maxA:158.4,hp:11000,def:138.6,wx:66},dy:{minA:330,maxA:660,hp:55921,def:166},wk:{min:186,max:373,hp:46700},jr:145,tier:110},
+ 23:{n:'二十三级',bt:{five:242,acc:25.6,minA:102,maxA:204,hp:26200,def:51},tal:{five:41,acc:19.5,crit:24,intent:12,minA:145.2,maxA:158.4,hp:11500,def:151.8,wx:79.2},dy:{minA:348,maxA:696,hp:59192,def:174},wk:{min:186,max:373,hp:46700},jr:145,tier:110},
+ 24:{n:'二十四级',bt:{five:262,acc:27.4,minA:122,maxA:244,hp:32000,def:61},tal:{five:42,acc:21,crit:28,intent:14,minA:158.4,maxA:184.8,hp:12500,def:158.4,wx:79.2},dy:{minA:370,maxA:738,hp:63069,def:186},wk:{min:211,max:423,hp:54500},jr:180,tier:115},
+ 25:{n:'二十五级',bt:{five:282,acc:29.3,minA:144,maxA:288,hp:38000,def:72},tal:{five:46,acc:21,crit:28,intent:14,minA:158.4,maxA:184.8,hp:13000,def:171.6,wx:92.4},dy:{minA:392,maxA:780,hp:66944,def:196},wk:{min:211,max:423,hp:54500},jr:180,tier:115}};
+/* 蹊跷：国际服 6 区（greydust）默认全开；国服后来的区（片雲 DIY，只有外攻数）默认不勾 */
+const QQREG=[['qinghe','清河',8,16,1500,12,1],['kaifeng','开封',16,24,2400,16,1],['hexi','河西',8,16,1650,10,1],['bujianshan','不见山',8,16,2100,8,1],
+ ['huanggong','皇宫',4,8,500,4,1],['qingzhou','青州',4,8,500,4,1],
+ ['huanggong2','皇宫（二）·国服',13.2,13.2,0,0,0],['jiazhong','夹钟下·国服',13.2,13.2,0,0,0],['ruibin','蕤宾上·国服',13.2,26.4,0,0,0],
+ ['jiangnan','江南·国服',24,36,0,0,0],['hangzhouxi','杭州西·国服',12,12,0,0,0],['hangzhou','杭州全·国服',13.2,26.4,0,0,0]];
+const LEVELS=[...Object.keys(SOLO).map(k=>({lv:+k,n:SOLO[k].n,col:'L'+k,closed:false})),
+ {lv:18,n:'参考：以我为准（11-12 面板反推）',col:'我18'},{lv:18,n:'参考：朋友表 100下',col:'100下'},{lv:17,n:'参考：朋友表 100上',col:'100上'}];
 const lvOfCol=col=>LEVELS.find(x=>x.col===col)||null;
 const BLBL=k=>{const L=lvOfCol(k);return L?L.n:k};
 const curLv=()=>{const L=lvOfCol(calcCfg().col);return L?L.lv:null};
+const lvData=()=>{const m=/^L(\d+)$/.exec(calcCfg().col||'');return m?SOLO[+m[1]]:null};
 /* 心法「随等级」那条：金卡基准值（总档 5.3b）。紫 = ×0.9，蓝 = ×0.8。只有十八级有数据，其他等级显示「缺」 */
+/* 心法随等级数值 17~25 级（greydust bySoloLevel，2026-11-13 抄；18 级 55 张与实测全中）。三率单位 % */
+const XFLV={'移经易武':{selfMax:[39.8,42.9,46.3,49.9,53.9,57.7,61.9,66.4,71.2]},
+ '抗造大法':{selfMin:[13.3,14.3,15.4,16.7,17.9,19.3,20.7,22.1,23.7],selfMax:[26.5,28.5,30.8,33.3,35.9,38.5,41.3,44.3,47.5]},
+ '威猛歌':{intent:[4,4.4,4.7,5.1,5.5,5.9,6.3,6.7,7.2]},
+ '所恨年年':{acc:[7.2,7.8,8.4,9,9.8,10.5,11.2,12,12.9]},
+ '寸草心':{selfMin:[14.7,15.9,17.1,18.5,19.9,21.4,22.9,24.6,26.4],selfMax:[29.5,31.7,34.3,36.9,39.9,42.8,45.9,49.2,52.8]},
+ '花上月令':{crit:[9,9.7,10.4,11.3,12.1,13,14,15,16.1]},
+ '断石之构':{acc:[7.2,7.8,8.4,9,9.8,10.5,11.2,12,12.9]},
+ '天行健':{selfMin:[14.7,15.9,17.1,18.5,19.9,21.4,22.9,24.6,26.4],selfMax:[29.5,31.7,34.3,36.9,39.9,42.8,45.9,49.2,52.8]},
+ '长生无相':{maxA:[70.1,75.6,81.6,88,95,101.8,109.2,117.1,125.6]},
+ '忘川绝响':{crit:[9,9.7,10.4,11.3,12.1,13,14,15,16.1]},
+ '三穷致知':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '征人归':{minA:[70.1,75.6,81.6,88,95,101.8,109.2,117.1,125.6]},
+ '一醉千秋':{minA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '指玄篇注':{crit:[8.1,8.7,9.4,10.1,10.9,11.7,12.6,13.5,14.5]},
+ '婆娑影':{acc:[7.2,7.8,8.4,9,9.8,10.5,11.2,12,12.9]},
+ '晚雪间':{hp:[2367,2553,2755,2973,3207,3439,3689,3955,4242]},
+ '山河绝韵':{crit:[9,9.7,10.4,11.3,12.1,13,14,15,16.1]},
+ '极乐泣血':{maxA:[62.3,67.2,72.5,78.2,84.4,90.5,97.1,104.1,111.6]},
+ '霜天白夜':{minA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '浮梁一夜':{intent:[4,4.4,4.7,5.1,5.5,5.9,6.3,6.7,7.2]},
+ '怒斩马':{def:[35,37.8,40.8,44,47.5,50.9,54.6,58.5,62.8]},
+ '葫芦飞飞':{acc:[7.2,7.8,8.4,9,9.8,10.5,11.2,12,12.9]},
+ '相和歌':{minA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '丹心篆':{hp:[2663,2872,3099,3344,3608,3869,4150,4450,4773]},
+ '弦墨篇':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '凝神章':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '明晦同尘':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '灯儿亮':{selfMin:[39.8,42.9,46.3,49.9,53.9,57.7,61.9,66.4,71.2]},
+ '千丝蛊':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '明非通判':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '燕别云岫':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '易水歌':{minA:[25.9,28,30.2,32.6,35.2,37.7,40.5,43.4,46.5],maxA:[51.9,56,60.4,65.2,70.4,75.5,80.9,86.8,93.1]},
+ '千山法':{selfMin:[13.3,14.3,15.4,16.7,17.9,19.3,20.7,22.1,23.7],selfMax:[26.5,28.5,30.8,33.3,35.9,38.5,41.3,44.3,47.5]},
+ '千营一呼':{crit:[9,9.7,10.4,11.3,12.1,13,14,15,16.1]},
+ '杏花不见':{selfMin:[39.8,42.9,46.3,49.9,53.9,57.7,61.9,66.4,71.2]},
+ '沧浪剑诀':{selfMin:[39.8,42.9,46.3,49.9,53.9,57.7,61.9,66.4,71.2]},
+ '磐石诀':{hp:[2663,2872,3099,3344,3608,3869,4150,4450,4773]},
+ '君臣药':{crit:[9,9.7,10.4,11.3,12.1,13,14,15,16.1]},
+ '沙摆尾':{def:[31.2,33.6,36.2,39.1,42.2,45.3,48.5,52,55.8]},
+ '四时无常':{minA:[25.9,28,30.2,32.6,35.2,37.7,40.5,43.4,46.5],maxA:[51.9,56,60.4,65.2,70.4,75.5,80.9,86.8,93.1]},
+ '山月无影':{minA:[62.3,67.2,72.5,78.2,84.4,90.5,97.1,104.1,111.6]},
+ '神断青锋':{maxA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '擒天势':{crit:[8.1,8.7,9.4,10.1,10.9,11.7,12.6,13.5,14.5]},
+ '飞仙醉言':{crit:[8.1,8.7,9.4,10.1,10.9,11.7,12.6,13.5,14.5]},
+ '扶摇直上':{minA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '大唐歌':{acc:[7.2,7.8,8.4,9,9.8,10.5,11.2,12,12.9]},
+ '纵地摘星':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '孤忠不辞':{crit:[8.1,8.7,9.4,10.1,10.9,11.7,12.6,13.5,14.5]},
+ '铁身诀':{def:[31.2,33.6,36.2,39.1,42.2,45.3,48.5,52,55.8]},
+ '岁星窃桃':{selfMin:[13.3,14.3,15.4,16.7,17.9,19.3,20.7,22.1,23.7],selfMax:[26.5,28.5,30.8,33.3,35.9,38.5,41.3,44.3,47.5]},
+ '剑气纵横':{maxA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '无名心法':{maxA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '穿喉诀':{selfMin:[13.3,14.3,15.4,16.7,17.9,19.3,20.7,22.1,23.7],selfMax:[26.5,28.5,30.8,33.3,35.9,38.5,41.3,44.3,47.5]},
+ '春雷篇':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '绳舟行木':{minA:[70.1,75.6,81.6,88,95,101.8,109.2,117.1,125.6]},
+ '困兽心经':{hp:[2663,2872,3099,3344,3608,3869,4150,4450,4773]},
+ '心弥泥鱼':{minA:[70.1,75.6,81.6,88,95,101.8,109.2,117.1,125.6]},
+ '归燕经':{hp:[2663,2872,3099,3344,3608,3869,4150,4450,4773]},
+ '大卷微身':{selfMin:[14.7,15.9,17.1,18.5,19.9,21.4,22.9,24.6,26.4],selfMax:[29.5,31.7,34.3,36.9,39.9,42.8,45.9,49.2,52.8]},
+ '燎原星火':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '燎原踏':{minA:[23.3,25.2,27.2,29.3,31.7,33.9,36.4,39,41.9],maxA:[46.7,50.4,54.4,58.7,63.3,67.9,72.8,78,83.7]},
+ '生龙活虎':{hp:[2367,2553,2755,2973,3207,3439,3689,3955,4242]},
+ '逐狼心经':{intent:[4,4.4,4.7,5.1,5.5,5.9,6.3,6.7,7.2]},
+ '月涌方圆':{maxA:[77.9,84,90.6,97.8,105.5,113.1,121.3,130.1,139.5]},
+ '风知意':{crit:[8.1,8.7,9.4,10.1,10.9,11.7,12.6,13.5,14.5]}};
+/* 套装二件套数值 17~25 级（greydust；四件套面板数值=二件套，额外效果是战斗效果，见总档 13） */
+const SETLV={'易相':{en:'Formbend',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '桂月':{en:'Moonflare',hp:[2960,3440,3440,4000,4000,4620,4620,5300,5300]},
+ '江凝':{en:'Calmwaters',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '鹰扬':{en:'Eaglerise',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '凌波步':{en:'Ripple Step',hp:[2960,3440,3440,4000,4000,4620,4620,5300,5300]},
+ '御无缺':{en:'Flawless Guardian',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '不知寒':{en:'Beyond the Chill',hp:[2960,3440,3440,4000,4000,4620,4620,5300,5300]},
+ '梨雪':{en:'Whirlsnow',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '抱玉':{en:'Jadeclasp',hp:[2960,3440,3440,4000,4000,4620,4620,5300,5300]},
+ '玄甲':{en:'Ebonward',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '尚义':{en:'Honorbound',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '盈盏':{en:'Brimflow',def:[39,45.4,45.4,52.8,52.8,60.6,60.6,69.8,69.8]},
+ '断岳':{en:'Cleftpeak',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '时雨':{en:'Rain Whisper',acc:[8,9.3,9.3,10.8,10.8,12.5,12.5,14.3,14.3]},
+ '浣花':{en:'Ivorybloom',crit:[9,10.4,10.4,12.1,12.1,14,14,16.1,16.1]},
+ '飞隼':{en:'Hawkwing',intent:[4.5,5.2,5.2,6.1,6.1,7,7,8,8]},
+ '撼天':{en:'Etherwrath',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '玉斗':{en:'Jadeware',maxA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '急风骤':{en:'Swift Gale',maxA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '岳山倾':{en:'Swaying Heights',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '燕归':{en:'Swallowcall',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '烟柳重重':{en:'Mistwillow',acc:[8,9.3,9.3,10.8,10.8,12.5,12.5,14.3,14.3]},
+ '连星':{en:'Starweave',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '倾觞':{en:'Tiltrim',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '裁云':{en:'Cloudshear',minA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]},
+ '寒芒':{en:'寒芒',maxA:[77.8,90.6,90.6,105.6,105.6,121.4,121.4,139.6,139.6]}};
 const XFG={18:{atk:[28,56],one:84,acc:7.8/0.9,crit:9.7,intent:4.4/0.9,hp:2872/0.9,def:42,self:[14.3/0.9,28.5/0.9],selfOne:42.9/0.9}};
 const XF_BLUE=['铁身诀','晚雪间','极乐泣血','沙摆尾','山月无影','生龙活虎'];
 const xfQ=n=>/\[金\]/.test(XFNOTE[n]||'')?1:XF_BLUE.includes(n)?0.8:0.9;
@@ -2314,6 +2438,13 @@ function xfLine(n,lv){const t=XFNOTE[n]||'',m=t.match(/^([^（、]+?)提升（�
   else if(pre==='精准率')kind='acc';else if(pre==='会心率')kind='crit';else if(pre==='会意率')kind='intent';
   else if(pre==='气血最大值')kind='hp';else if(pre==='外功防御')kind='def';
   else{const mm=pre.match(/^(最小|最大)?(裂石|鸣金|破竹|牵丝|无相)攻击$/);if(!mm)return {pre,raw:m[0]};kind=mm[1]?'selfOne':'self';sys=mm[2]}
+  const T=XFLV[n],li=lv-17;
+  if(T&&li>=0&&li<9){const g=k=>T[k]?T[k][li]:null;let val=null;
+    if(kind==='atk')val=[g('minA'),g('maxA')];else if(kind==='one')val=g(pre.startsWith('最小')?'minA':'maxA');
+    else if(kind==='self')val=[g('selfMin'),g('selfMax')];else if(kind==='selfOne')val=g(pre.startsWith('最小')?'selfMin':'selfMax');
+    else val=g(kind);
+    if(Array.isArray(val)&&val.some(x=>x==null))val=null;
+    if(val!=null){const txt=pre+' +'+(Array.isArray(val)?val.join('~'):val)+(['acc','crit','intent'].includes(kind)?'%':'');return {pre,kind,sys,val,raw:m[0],txt}}}
   if(!G)return {pre,kind,sys,val:null,raw:m[0]};
   const g=G[kind],r1=x=>+(x*q).toFixed(1),r2=x=>+(x*q).toFixed(2);
   const val=Array.isArray(g)?g.map(r1):kind==='hp'?Math.round(g*q):['acc','crit','intent'].includes(kind)?r2(g):r1(g);
@@ -2344,16 +2475,20 @@ const CALCN={get selfMax(){return '最大'+SYS[sc().sys]+'攻击'},get selfMin()
   hp:'气血最大值',def:'外功防御',accW:'精准率（白字）',critW:'会心率（白字）',intentW:'会意率（白字）',
   zjCrit:'直接会心率',zjIntent:'直接会意率',pen:'外功穿透',spen:'属攻穿透'};
 function calcCfg(){const p=P();const c=p.calc=p.calc||{};
-  c.col=c.col||'100下'; /* 11-13：默认 = 十八级·知微（当前赛季）；以前默认 100上 = 十七级，徒弟因此显示十七级 */c.wk=c.wk||{mode:'gen'};c.dy=c.dy||{};c.qq=c.qq||{};c.wx=c.wx||['',''];c.w13=c.w13||[false,false];c.hpMul=c.hpMul==null?1.2:c.hpMul;if(c.dyIn==null)c.dyIn=true;return c}
+  c.col=c.col||'L18';if(!c.qqR){c.qqR={};QQREG.forEach(r=>{if(r[6])c.qqR[r[0]]=true})} /* 11-13：默认 = 十八级·知微（当前赛季）；以前默认 100上 = 十七级，徒弟因此显示十七级 */c.wk=c.wk||{mode:'gen'};c.dy=c.dy||{};c.qq=c.qq||{};c.wx=c.wx||['',''];c.w13=c.w13||[false,false];c.hpMul=c.hpMul==null?1.2:c.hpMul;if(c.dyIn==null)c.dyIn=true;return c}
 function calcPanel(){
-  const L=LO(),B=L.base||{},c=calcCfg(),T=BASETAB[c.col]||BASETAB['100上'],sy=SYS[sc().sys];if(T.noDy)c.dyIn=false;
+  const L=LO(),B=L.base||{},c=calcCfg(),LV=lvData(),T=LV?null:(BASETAB[c.col]||BASETAB['100下']),sy=SYS[sc().sys];if(LV||T.noDy)c.dyIn=false;
+  const WB=LV?LV.bt.five+LV.tal.five:WDBASE;
+  const QQ={minA:0,maxA:0,hp:0,def:0,k:0};if(LV)QQREG.forEach(r=>{if(c.qqR&&c.qqR[r[0]]){QQ.minA+=r[2];QQ.maxA+=r[3];QQ.hp+=r[4];QQ.def+=r[5];QQ.k++}});
+  const dyv=(k,full)=>c.dy[k]!=null&&c.dy[k]!==''?+c.dy[k]:(LV?full:0), wkv=(k,full)=>c.wk[k]!=null&&c.wk[k]!==''?+c.wk[k]:(LV?full:0);
+  const dyL=k=>c.dy[k]!=null&&c.dy[k]!==''?'':'（空着，按'+(LV?LV.n:'')+'满值）', wkL=k=>c.wk[k]!=null&&c.wk[k]!==''?'':'（空着，按满值）';
   const XE=xfEff(),SE=setEff(),BE=bowEff(),bs=baseSum();
   const g={};SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);if(!it)return;
     it.affixes.forEach(a=>{if(a.t&&a.t!=='none')g[cT(a.t)]=(g[cT(a.t)]||0)+(+a.v||0)})});
   const dy={};SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);const y=it&&it.dy;if(y&&y.t&&y.t!=='none')dy[y.t]=(dy[y.t]||0)+(+y.v||0)});
   const gr={};SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);if(!it)return;it.affixes.forEach(a=>{if(a.t)gr[a.t]=(gr[a.t]||0)+(+a.v||0)})});
   const n=x=>+x||0,eq=k=>['ti','jin','yu','min','shi'].includes(k)?n(gr[k]):n(g[k]);
-  const wd={ti:WDBASE+eq('ti'),jin:WDBASE+eq('jin'),yu:WDBASE+eq('yu'),min:WDBASE+eq('min'),shi:WDBASE+eq('shi')};
+  const wd={ti:WB+eq('ti'),jin:WB+eq('jin'),yu:WB+eq('yu'),min:WB+eq('min'),shi:WB+eq('shi')};
   const cur={ti:B.pTi!=null?B.pTi:wd.ti,jin:B.pJin!=null?B.pJin:wd.jin,min:B.pMin!=null?B.pMin:wd.min,
     yu:B.pYu!=null?B.pYu:wd.yu,shi:B.pShi!=null?B.pShi:wd.shi};
   /* 武学天赋：两门都算（11-08 徒弟对账：两门天赋都在面板里）；本系攻击 +106~212 只算一次（推算） */
@@ -2369,26 +2504,37 @@ function calcPanel(){
       else talTxt.push(['spen',`${w}·${sy}穿透：要你填「${by==='selfMax'?'最大':'最小'}${sy}攻击」才算得出`,0])}});
   if(selfT){tal.selfMin=(tal.selfMin||0)+selfT[0];tal.selfMax=(tal.selfMax||0)+selfT[1];
     talTxt.push(['selfMin','武学天赋·'+sy+'攻击 +'+selfT[0]+'（两门只算一次，推算）',selfT[0]],['selfMax','武学天赋·'+sy+'攻击 +'+selfT[1],selfT[1]])}
-  const wk=c.wk,gen=wk.mode!=='self';
+  const wk={mode:c.wk.mode,min:wkv('min',LV&&LV.wk.min),max:wkv('max',LV&&LV.wk.max),hp:wkv('hp',LV&&LV.wk.hp)},gen=wk.mode!=='self';
   const row=(k,parts,note)=>{const val=parts.reduce((a,x)=>a+n(x[1]),0);return {k,parts:parts.filter(x=>x[1]!==0&&x[1]!=null||x[2]),val,note}};
   const T_=(k)=>talTxt.filter(x=>x[0]===k).map(x=>['天赋：'+x[1],x[2]]);
-  const cap105=k=>{const v=T[k],u=BASETAB['105'][k];return (u!=null&&v!=null&&c.col!=='105')?(v>u?'，⚠ 高过 105 列 '+u:'，≤ 105 列 '+u):''};
+  const cap105=k=>{if(LV)return '';const v=T[k],u=BASETAB['105'][k];return (u!=null&&v!=null&&c.col!=='105')?(v>u?'，⚠ 高过 105 列 '+u:'，≤ 105 列 '+u):''};
+  /* 分层基本盘（LV 有值时）；本系那两行国际服没有数 → 仍用朋友表 100下 */
+  const FB=BASETAB['100下'];
+  const BL=k=>{if(!LV)return [['基本盘（'+BLBL(c.col)+(k==='maxA'?'，扣武库，含五维底子换算':'')+cap105(k)+'）',T[k]]];
+    const b=LV.bt,t=LV.tal,nm=LV.n;
+    if(k==='maxA')return [['等级',LV0.maxA],['突破（'+nm+'）',b.maxA],['通用天赋（'+nm+'）',t.maxA],['蹊跷 '+QQ.k+' 区',QQ.maxA],['五维底子 '+WB+' × (劲 '+JIN2MAX+' + 势 0.9)',WB*(JIN2MAX+0.9)]];
+    if(k==='minA')return [['等级',LV0.minA],['突破（'+nm+'）',b.minA],['通用天赋（'+nm+'）',t.minA],['蹊跷 '+QQ.k+' 区',QQ.minA],['五维底子 '+WB+' × (敏 0.9 + 劲 '+JIN2MIN+')',WB*(0.9+JIN2MIN)]];
+    if(k==='acc')return [['等级',LV0.acc],['突破（'+nm+'）',b.acc],['通用天赋（'+nm+'）',t.acc]];
+    if(k==='crit')return [['通用天赋（'+nm+'）',t.crit],['五维底子 敏 '+WB+' × '+MIN2CRIT,WB*MIN2CRIT]];
+    if(k==='intent')return [['通用天赋（'+nm+'）',t.intent],['五维底子 势 '+WB+' × '+SHI2INT,WB*SHI2INT]];
+    if(k==='selfMax'||k==='selfMin')return [['基本盘（朋友表 100下；国际服没有这层的数）',FB[k]]];
+    return []};
   const R=[];
-  WD5.forEach(([pk,tk,nm])=>R.push(row(pk,[['角色底子',WDBASE],['装备词条 '+nm,eq(tk)]])));
-  R.push(row('maxA',[['基本盘（'+BLBL(c.col)+'，扣武库，含五维底子换算'+cap105('maxA')+'）',T.maxA],['武库',gen?n(wk.max):0],['叠音'+(c.dyIn?'（已含在基本盘里，不另加）':''),c.dyIn?0:n(c.dy.maxA),1],['蹊跷',n(c.qq.maxA)],
+  WD5.forEach(([pk,tk,nm])=>R.push(row(pk,[['角色底子'+(LV?'（突破 '+LV.bt.five+' + 天赋 '+LV.tal.five+'）':''),WB],['装备词条 '+nm,eq(tk)]])));
+  R.push(row('maxA',[...BL('maxA'),['武库'+wkL('max'),gen?n(wk.max):0],['叠音'+(c.dyIn?'（已含在基本盘里，不另加）':dyL('maxA')),c.dyIn?0:dyv('maxA',LV&&LV.dy.maxA),1],['蹊跷',n(c.qq.maxA)],
     ...T_('maxA'),['心法',n(XE.add.maxA)],['套装',n(SE.add.maxA)],['装备自带',bs.atkMax],['装备词条 最大外功',eq('maxA')],
     ['装备劲 '+fmt(eq('jin'),1)+' × '+JIN2MAX,eq('jin')*JIN2MAX],['装备势 '+fmt(eq('shi'),1)+' × 0.9',eq('shi')*0.9]]));
-  R.push(row('minA',[['基本盘（'+BLBL(c.col)+cap105('minA')+'）',T.minA],['武库',gen?n(wk.min):0],['叠音'+(c.dyIn?'（已含在基本盘里，不另加）':''),c.dyIn?0:n(c.dy.minA),1],['蹊跷',n(c.qq.minA)],
+  R.push(row('minA',[...BL('minA'),['武库'+wkL('min'),gen?n(wk.min):0],['叠音'+(c.dyIn?'（已含在基本盘里，不另加）':dyL('minA')),c.dyIn?0:dyv('minA',LV&&LV.dy.minA),1],['蹊跷',LV?0:n(c.qq.minA)],
     ...T_('minA'),['心法',n(XE.add.minA)],['套装',n(SE.add.minA)],['装备自带',bs.atkMin],['装备词条 最小外功',eq('minA')],
     ['装备劲 × '+JIN2MIN,eq('jin')*JIN2MIN],['装备敏 '+fmt(eq('min'),1)+' × 0.9',eq('min')*0.9]]));
-  R.push(row('selfMax',[['基本盘（'+BLBL(c.col)+cap105('selfMax')+'）',T.selfMax],['武库',gen?0:n(wk.max)],...T_('selfMax'),['心法',n(XE.add.selfMax)],['装备词条 最大'+sy,eq('selfMax')]],'装备自带的属性攻击没建模'));
-  R.push(row('selfMin',[['基本盘（'+BLBL(c.col)+cap105('selfMin')+'）',T.selfMin],['武库',gen?0:n(wk.min)],...T_('selfMin'),['心法',n(XE.add.selfMin)],['装备词条 最小'+sy,eq('selfMin')]],'装备自带的属性攻击没建模'));
-  R.push(row('hp',[['基础气血','?'],['体 '+fmt(cur.ti,0)+' × '+TI2HP,cur.ti*TI2HP],['御 '+fmt(cur.yu,0)+' × '+YU2HP,cur.yu*YU2HP],['武库',n(wk.hp)],['叠音',n(c.dy.hp)],['蹊跷',n(c.qq.hp)],
+  R.push(row('selfMax',[...BL('selfMax'),['武库',gen?0:n(wk.max)],...T_('selfMax'),['心法',n(XE.add.selfMax)],['装备词条 最大'+sy,eq('selfMax')]],'装备自带的属性攻击没建模'));
+  R.push(row('selfMin',[...BL('selfMin'),['武库',gen?0:n(wk.min)],...T_('selfMin'),['心法',n(XE.add.selfMin)],['装备词条 最小'+sy,eq('selfMin')]],'装备自带的属性攻击没建模'));
+  R.push(row('hp',[['基础气血','?'],['体 '+fmt(cur.ti,0)+' × '+TI2HP,cur.ti*TI2HP],['御 '+fmt(cur.yu,0)+' × '+YU2HP,cur.yu*YU2HP],['武库'+wkL('hp'),n(wk.hp)],['叠音'+dyL('hp'),dyv('hp',LV&&LV.dy.hp)],['蹊跷'+(LV?' '+QQ.k+' 区':''),LV?QQ.hp:n(c.qq.hp)],...(LV?[['突破（'+LV.n+'）',LV.bt.hp],['通用天赋（'+LV.n+'）',LV.tal.hp]]:[]),
     ...T_('hp'),['心法',n(XE.add.hp)],['套装',n(SE.add.hp)],['装备自带',bs.hp],['装备词条 气血',eq('hp')]],'算的是白字；面板（括号）= 白字 × '+c.hpMul+'（+20% 来源未知）。基础气血还不知道，差额就是它'));
-  R.push(row('def',[['基础外防','?'],['御 × '+YU2DEF,cur.yu*YU2DEF],['叠音',n(c.dy.def)],['蹊跷',n(c.qq.def)],['心法',n(XE.add.def)],['套装',n(SE.add.def)],['装备自带',bs.def],['装备词条 外防',eq('def')]],'基础外防还不知道，差额就是它'));
-  R.push(row('accW',[['基本盘（'+BLBL(c.col)+cap105('acc')+'）',T.acc],['套装',n(SE.add.acc)],['弓',n(BE.add.acc)],['心法',n(XE.add.acc)],...T_('acc'),['装备词条 精准',eq('acc')]]));
-  R.push(row('critW',[['基本盘（'+BLBL(c.col)+cap105('crit')+'）',T.crit],['套装',n(SE.add.crit)],['弓',n(BE.add.crit)],['心法',n(XE.add.crit)],...T_('crit'),['装备词条 会心',eq('crit')],['装备敏 × '+MIN2CRIT,eq('min')*MIN2CRIT]]));
-  R.push(row('intentW',[['基本盘（'+BLBL(c.col)+cap105('intent')+'）',T.intent],['套装',n(SE.add.intent)],['弓',n(BE.add.intent)],['心法',n(XE.add.intent)],...T_('intent'),['装备词条 会意',eq('intent')],['装备势 × '+SHI2INT,eq('shi')*SHI2INT]]));
+  R.push(row('def',[['基础外防','?'],['御 × '+YU2DEF,cur.yu*YU2DEF],['叠音'+dyL('def'),dyv('def',LV&&LV.dy.def)],['蹊跷'+(LV?' '+QQ.k+' 区':''),LV?QQ.def:n(c.qq.def)],...(LV?[['突破（'+LV.n+'）',LV.bt.def],['通用天赋（'+LV.n+'）',LV.tal.def]]:[]),['心法',n(XE.add.def)],['套装',n(SE.add.def)],['装备自带',bs.def],['装备词条 外防',eq('def')]],'基础外防还不知道，差额就是它'));
+  R.push(row('accW',[...BL('acc'),['套装',n(SE.add.acc)],['弓',n(BE.add.acc)],['心法',n(XE.add.acc)],...T_('acc'),['装备词条 精准',eq('acc')]]));
+  R.push(row('critW',[...BL('crit'),['套装',n(SE.add.crit)],['弓',n(BE.add.crit)],['心法',n(XE.add.crit)],...T_('crit'),['装备词条 会心',eq('crit')],['装备敏 × '+MIN2CRIT,eq('min')*MIN2CRIT]]));
+  R.push(row('intentW',[...BL('intent'),['套装',n(SE.add.intent)],['弓',n(BE.add.intent)],['心法',n(XE.add.intent)],...T_('intent'),['装备词条 会意',eq('intent')],['装备势 × '+SHI2INT,eq('shi')*SHI2INT]]));
   R.push(row('zjCrit',[['心法',n(XE.add.zjCrit)]]));
   R.push(row('zjIntent',[['心法',n(XE.add.zjIntent)]]));
   R.push(row('pen',[['定音 外功穿透',n(dy.extPen)],['心法',n(XE.add.pen)]]));
@@ -2405,9 +2551,11 @@ function calcBox(){
     <label>单人模式等级 <select data-calc="col">${LEVELS.map(L=>L.closed?`<option disabled>${esc(L.n)}（未开放）</option>`:`<option value="${L.col}"${L.col===c.col?' selected':''}>${esc(L.n)}</option>`).join('')}${lvOfCol(c.col)?'':`<option value="${esc(c.col)}" selected>${esc(c.col)}（旧设置）</option>`}</select></label>
     <label>武库 <select data-calc="wk.mode"><option value="gen"${c.wk.mode!=='self'?' selected':''}>通用（加外功）</option><option value="self"${c.wk.mode==='self'?' selected':''}>属攻（加本系）</option></select>
       小 ${num('wk.min',c.wk.min)} 大 ${num('wk.max',c.wk.max)} 气血 ${num('wk.hp',c.wk.hp)}</label>
-    <label><input type="checkbox" data-calc="dyIn"${c.dyIn?' checked':''}>基本盘已含叠音外攻</label>
+    ${lvData()?'':`<label><input type="checkbox" data-calc="dyIn"${c.dyIn?' checked':''}>基本盘已含叠音外攻</label>`}
     <label>叠音合计 小外攻 ${num('dy.minA',c.dy.minA)} 大外攻 ${num('dy.maxA',c.dy.maxA)} 气血 ${num('dy.hp',c.dy.hp)} 外防 ${num('dy.def',c.dy.def)}</label>
-    <label>蹊跷合计 小外攻 ${num('qq.minA',c.qq.minA,'0')} 大外攻 ${num('qq.maxA',c.qq.maxA,'0')} 气血 ${num('qq.hp',c.qq.hp,'0')} 外防 ${num('qq.def',c.qq.def,'0')}</label>
+    ${lvData()?`<div style="width:100%"><b>蹊跷</b> <span class="hint">（勾你开过的区；国服后来的区只有外攻数）</span><br>${QQREG.map(r=>`<label style="margin-right:10px"><input type="checkbox" data-calc="qqR.${r[0]}"${c.qqR&&c.qqR[r[0]]?' checked':''}>${esc(r[1])} <span class="hint">${r[2]}/${r[3]}</span></label>`).join('')}</div>
+    <span class="hint">叠音、武库空着 = 按 ${esc(lvData().n)} 满值算（叠音 ${lvData().dy.minA}/${lvData().dy.maxA}、武库 ${lvData().wk.min}/${lvData().wk.max}）；填了就按你填的</span>`
+    :`<label>蹊跷合计 小外攻 ${num('qq.minA',c.qq.minA,'0')} 大外攻 ${num('qq.maxA',c.qq.maxA,'0')} 气血 ${num('qq.hp',c.qq.hp,'0')} 外防 ${num('qq.def',c.qq.def,'0')}</label>`}
     <span class="hint">武学在上面「存档」那一栏选（跟存档走）</span></div>`;
   const rowH=r=>{const op=all||open[r.k];
     const st=r.d==null?'<span class="hint">没填</span>':r.unk?`<b>${r.d>=0?'+':''}${fmt(r.d,1)}</b><span class="hint">（未知来源）</span>`
@@ -2425,6 +2573,8 @@ function calcBox(){
 
 /* ===== 属性表导出：填的数 + 算出来的数（装备贡献、去掉装备后的底子），方便多个玩家对比基准值 ===== */
 /* 心法 / 弓 / 套装 对面板的贡献：只记卡面上写死的数。「随赛季」那条卡面不写数字 → 记进缺漏，底子不可信 */
+/* 弓随单人等级 17~25（greydust；17/18 级和你实测的「生效 93/98」两组全中） */
+const BOWLV={bowCrit:[4.5,5.2,5.2,6.1,6.1,7,7,8,8],bowIntent:[2.2,2.6,2.6,3,3,3.5,3.5,4,4],bowAcc:[4,4.7,4.7,5.4,5.4,6.2,6.2,7.2,7.2]};
 const BOWVAL={bowCrit:['crit',5.2,'惊弦 会心率 +5.2（生效100）'],bowIntent:['intent',2.6,'追影 会意率 +2.6（生效100）'],bowAcc:['acc',4.7,'饮羽 精准率 +4.7（生效100）']};
 const SEASON_MAP=sy=>[['最小外功攻击',['minA']],['最大外功攻击',['maxA']],['外功攻击',['maxA','minA']],
   [sy+'攻击',['selfMax','selfMin']],['最小'+sy+'攻击',['selfMin']],['最大'+sy+'攻击',['selfMax']],['精准率',['acc']],['会心率',['crit']],['会意率',['intent']],
@@ -2456,8 +2606,12 @@ function xfEff(){
 function setEff(){
   const L=LO(),cs=L.sets||{},out={add:{},miss:[],list:[]};
   const addv=(k,v)=>out.add[k]=+((out.add[k]||0)+v).toFixed(3);
-  [['攻击套',cs.a],['防具套',cs.d]].forEach(([lab,key])=>{const S=SETS[key];if(!S||key==='none')return;
+  [['攻击套',cs.a==='hantian2'?'hantian':cs.a],['防具套',cs.d]].forEach(([lab,key])=>{const S=SETS[key];if(!S||key==='none')return;
     const d=S.d||'',got=[];let m;
+    const T=SETLV[S.n==='烟柳'?'烟柳重重':S.n],li=curLv()-17;
+    if(T&&li>=0&&li<9){const NM={minA:'最小外功',maxA:'最大外功',acc:'精准率',crit:'会心率',intent:'会意率',hp:'气血',def:'外功防御'};
+      Object.keys(NM).forEach(k=>{if(T[k]){addv(k,T[k][li]);got.push(NM[k]+'+'+T[k][li]+(['acc','crit','intent'].includes(k)?'%':''))}});
+      out.list.push([lab+'：'+S.n,(d?d+'；':'')+'按 '+curLv()+' 级取值（greydust）',got.join('；')]);return}
     if(m=d.match(/精准率\+([\d.]+)/)){addv('acc',+m[1]);got.push('精准率+'+m[1])}
     if(m=d.match(/会意率\+([\d.]+)/)){addv('intent',+m[1]);got.push('会意率+'+m[1])}
     if(m=d.match(/会心率\+([\d.]+)/)){addv('crit',+m[1]);got.push('会心率+'+m[1])}
@@ -2469,7 +2623,9 @@ function setEff(){
     out.list.push([lab+'：'+S.n,d||'（数值未录入）',got.join('；')])});
   return out}
 function bowEff(){const L=LO(),b=(L.sets||{}).b,B0=BOWVAL[b],out={add:{},list:[]};
-  if(B0){out.add[B0[0]]=B0[1];out.list.push([SETS[b].n,SETS[b].d||'',B0[2]])}
+  if(B0){const T=BOWLV[b],li=curLv()-17,nm={bowCrit:'惊弦 会心率',bowIntent:'追影 会意率',bowAcc:'饮羽 精准率'}[b];
+    if(T&&li>=0&&li<9){out.add[B0[0]]=T[li];out.list.push([SETS[b].n,SETS[b].d||'',nm+' +'+T[li]+'（'+curLv()+' 级）'])}
+    else{out.add[B0[0]]=B0[1];out.list.push([SETS[b].n,SETS[b].d||'',B0[2]])}}
   return out}
 function attrRows(){
   const L=LO(),B=L.base||{},d=divOf(B),rows=[];
@@ -4366,6 +4522,37 @@ async function doCy(id,btn){
    所以「回车存」和「点别处存」行为完全一致，不会出现两套逻辑对不上的情况。
    Shift+Enter 留给多行输入；下拉框本来就是选完即存，不碰。 */
 /* 点到装备栏以外就把展开的那一行收回去，恢复成装备库那种干净显示 */
+/* Tab 不乱跑（v221）：改完一格按 Tab，change 会触发重画，整块 DOM 换新，浏览器就找不到「下一格」了。
+   做法：Tab 时先记住下一格是谁（按 data-* 属性 / id 认，认不出就按顺序号），重画后再把光标放回去。 */
+(function(){
+  const FSEL='input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])';
+  const vis=el=>el.offsetParent!==null||el.getClientRects().length>0;
+  const list=()=>[...document.querySelectorAll(FSEL)].filter(vis);
+  const keyOf=el=>{if(el.id)return {sel:'#'+CSS.escape(el.id),i:0};
+    const ds=Object.keys(el.dataset);if(!ds.length)return null;
+    const sel=el.tagName.toLowerCase()+ds.map(k=>'[data-'+k.replace(/[A-Z]/g,m=>'-'+m.toLowerCase())+'="'+CSS.escape(el.dataset[k])+'"]').join('');
+    return {sel,i:[...document.querySelectorAll(sel)].indexOf(el)}};
+  const put=el=>{el.focus({preventScroll:false});if(el.tagName==='INPUT'&&/^(text|number|search)$/.test(el.type)&&el.select)try{el.select()}catch(_){}};
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Tab'||e.isComposing||e.altKey||e.ctrlKey||e.metaKey)return;
+    const t=e.target;if(!t||!/^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName))return;
+    const L=list(),i=L.indexOf(t);if(i<0)return;
+    const nx=L[i+(e.shiftKey?-1:1)];if(!nx)return;
+    e.preventDefault();
+    const k=keyOf(nx),idx=L.indexOf(nx);
+    const find=()=>{if(nx.isConnected&&vis(nx))return nx;
+      if(k){const m=[...document.querySelectorAll(k.sel)].filter(vis);if(m.length)return m[Math.min(Math.max(k.i,0),m.length-1)]}
+      const L2=list();return L2[Math.min(idx,L2.length-1)]};
+    t.blur();                       // 触发 change → 存 + 重画（和以前点别处一样）
+    const el=find();if(el)put(el);
+    const stop=()=>{clearInterval(iv);document.removeEventListener('mousedown',stop,true);document.removeEventListener('keydown',stop,true)};
+    setTimeout(()=>{document.addEventListener('mousedown',stop,true);document.addEventListener('keydown',stop,true)},0);
+    const t0=Date.now(),iv=setInterval(()=>{   // 异步保存后才重画的，也接得住
+      const a=document.activeElement;
+      if(!a||a===document.body){const el2=find();if(el2)put(el2)}
+      if(Date.now()-t0>1500)stop()},40);
+  },true);
+})();
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter'||e.shiftKey||e.isComposing)return;
   const t=e.target;
