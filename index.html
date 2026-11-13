@@ -1305,7 +1305,9 @@ const SAMEAS={wxMax:'selfMax',wxMin:'selfMin'};
 /* 首领增伤 / 玩家增效 占同一个槽，神力开出哪个不可控 —— 验货一律当成同一条，按这套存档的取向记账（用户 2026-11-10） */
 const npNow=()=>{try{return (typeof LO==='function'&&LO()&&LO().np)||'boss'}catch(e){return 'boss'}};
 /* 小流派也可声明 same（11-12 肉坦：气血/体/御/外防同等、劲=最大外功）；只对当前存档的小流派生效 */
-const vSame=()=>{try{return (typeof curV==='function'&&curV()&&curV().same)||null}catch(e){return null}};
+/* 11-13 性能：cT 每次渲染要跑上万次，不能走 LO()/curV()（会重算 loList，整页卡到几十秒）→ 直接读当前存档的小流派名 */
+const vSame=()=>{try{const p=P(),L=(p.lo||{})[p.active];if(!L)return null;const vs=sc().vars;
+  const v=L.vn?vs.find(x=>x.n===L.vn):vs[Math.min(L.v||0,vs.length-1)];return (v&&v.same)||null}catch(e){return null}};
 const cT=t=>{t=SAMEAS[t]||t;if(t==='boss'||t==='pvp')return npNow();const m=(typeof sc==='function'&&sc().same)||null,mv=vSame();return (mv&&mv[t])||(m&&m[t])||t};
 const poolHas=(slot,t)=>{const c=cT(t);for(const x of zlPool(slot))if(cT(x)===c)return true;return false};
 const zlKnown=k=>!!zlSeen(k);
@@ -2342,7 +2344,7 @@ const CALCN={get selfMax(){return '最大'+SYS[sc().sys]+'攻击'},get selfMin()
   hp:'气血最大值',def:'外功防御',accW:'精准率（白字）',critW:'会心率（白字）',intentW:'会意率（白字）',
   zjCrit:'直接会心率',zjIntent:'直接会意率',pen:'外功穿透',spen:'属攻穿透'};
 function calcCfg(){const p=P();const c=p.calc=p.calc||{};
-  c.col=c.col||'100上';c.wk=c.wk||{mode:'gen'};c.dy=c.dy||{};c.qq=c.qq||{};c.wx=c.wx||['',''];c.w13=c.w13||[false,false];c.hpMul=c.hpMul==null?1.2:c.hpMul;if(c.dyIn==null)c.dyIn=true;return c}
+  c.col=c.col||'100下'; /* 11-13：默认 = 十八级·知微（当前赛季）；以前默认 100上 = 十七级，徒弟因此显示十七级 */c.wk=c.wk||{mode:'gen'};c.dy=c.dy||{};c.qq=c.qq||{};c.wx=c.wx||['',''];c.w13=c.w13||[false,false];c.hpMul=c.hpMul==null?1.2:c.hpMul;if(c.dyIn==null)c.dyIn=true;return c}
 function calcPanel(){
   const L=LO(),B=L.base||{},c=calcCfg(),T=BASETAB[c.col]||BASETAB['100上'],sy=SYS[sc().sys];if(T.noDy)c.dyIn=false;
   const XE=xfEff(),SE=setEff(),BE=bowEff(),bs=baseSum();
