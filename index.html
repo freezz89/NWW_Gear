@@ -448,14 +448,10 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
   </section>
   <aside style="display:flex;flex-direction:column;gap:14px">
     <div class="card">
-      <h2>毕业率<span class="sub">按算出来的面板，换装备、心法、套装、弓都会跟着变</span>
-        <button class="mini hd-r" id="rateTog">省略说明</button></h2>
+      <h2>毕业率<span class="sub" id="distWho"></span><span class="sub" id="distSub"></span>
+        <button class="mini hd-r" id="rateTog">显示说明</button></h2>
       <div id="rates"></div>
-    </div>
-    <div class="card">
-      <h2>满配词条对比<span class="sub" id="distSub"></span><span class="sub" id="distWho"></span>
-        <button class="mini hd-r" id="distTog">收起</button></h2>
-      <div id="distBox">
+      <div id="distBox" style="margin-top:8px">
         <div style="overflow-x:auto"><table id="dist"></table></div>
         <p class="hint" style="margin:7px 0 0">满配神力按 <b id="npTxt"></b> 算 <button class="mini" id="npBtn">改成玩家增效</button><select id="np" style="display:none"><option value="pvp">玩家增效</option><option value="boss">首领增伤</option></select></p>
       </div>
@@ -503,7 +499,7 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
 <div class="card" id="mxBox" style="display:none"></div>
 
 <div class="sec">
-  <h2>自定义毕业词条单<span class="sub">自己加新流派 / 新小流派的满配条数 · 存进装备库，所有设备都在</span></h2>
+  <h2>自定义毕业词条单<span class="sub">自己加新流派 / 新小流派的满配条数 · 存进装备库，只存在这个浏览器里</span></h2>
   <button id="cvTog">展开</button>
 </div>
 <div class="card" id="cvBox" style="display:none"></div>
@@ -539,7 +535,7 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
 /* ===== 寒雨藏锋阁 · 代码分段（v234，审查 #21）=====
    数据（MAX/SOLO/WXR/XFT/SETLV/BOWLV/SCHOOLS…）→ 状态与存取 → 计算（我算的面板、毕业率）→ 判定（验货、转律、配额）→ 画面（render 各块）→ 导入 / 备份 / 事件
    每段开头有 「===== 段名 =====」 注释，搜它就能跳过去。 */
-const APPV='v258';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
+const APPV='v263';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
 const LOGE=(e,where)=>{try{console.warn('[寒雨藏锋阁 '+APPV+']',where||'',e&&e.message||e)}catch(x){LOGE(x)}};   // v234 #21：出错至少记一行
 const $=id=>document.getElementById(id);
 document.addEventListener('DOMContentLoaded',()=>{const e=$('appVer');if(e)e.textContent=APPV});{const e=document.getElementById('appVer');if(e)e.textContent=APPV}
@@ -549,7 +545,8 @@ const fmt=(x,d=0)=>(+x||0).toLocaleString('zh-CN',{minimumFractionDigits:d,maxim
 
 /* ===== 基础数据 ===== */
 const MAX={maxA:90.6,minA:90.6,selfMax:51.4,selfMin:51.4,wxMax:51.4,wxMin:51.4,jin:57.4,min:57.4,shi:57.4,
- crit:10.4,acc:9.4,intent:5.2,dmgW:7.4,dmgW2:7.4,boss:3.8,pvp:3.8,all:3.6,qishuAll:11.4,qishu:11.4,ti:57.4,yu:57.4,hp:3444,def:45.4,outer:44,none:0};   /* v239（审查 #10）：100 阶：气血 3444、外防 45.4、全奇术 / 单体奇术 11.4、玩家增效 = 首领增伤 3.8 */
+ crit:10.4,acc:9.4,intent:5.2,dmgW:7.4,dmgW2:7.4,boss:3.8,pvp:3.8,all:3.6,qishuAll:11.4,qishu:11.4,ti:57.4,yu:57.4,hp:3444,def:45.4,outer:51.4,none:0};   /* v259（11-17 你指出）：别系属攻满值和本系属攻一样（100 阶 25.7~51.4），以前写 44 是错的 */
+     /* v239（审查 #10）：100 阶：气血 3444、外防 45.4、全奇术 / 单体奇术 11.4、玩家增效 = 首领增伤 3.8 */
 const CY=0.94;                                   // 承音过的卡在该阶满值的 94%
 /* 阶位系数。96 那档是转律词库实测（77.8/49.4/44.2/9.0 = 100阶 × 0.86）。
    110 这档是 2026-10-28 从一批 110 阶装备截图**反推**的，不是实测：
@@ -575,7 +572,7 @@ const CYUP={'100':0,'cy':1,'96':0,'cy96':1,'105':0,'cy105':1,'110':0,'cy110':1,'
    两处例外：玩家增效按首领增伤同值；115 阶单体奇术用 17.7。承音过 = ×0.94（capOf 里乘）。
    以前的旧表（用户 11-06 的 96 / 105 / 115 表、110 用系数 1.34 推）作废。 */
 const GDT=(ext,five,self,crit,acc,intent,dmgW,qishu,all,god,hp,def)=>({maxA:ext,minA:ext,jin:five,min:five,shi:five,ti:five,yu:five,
-  selfMax:self,selfMin:self,wxMax:self,wxMin:self,crit,acc,intent,dmgW,dmgW2:dmgW,qishuAll:qishu,qishu,all,boss:god,pvp:god,hp,def});
+  selfMax:self,selfMin:self,wxMax:self,wxMin:self,outer:self,crit,acc,intent,dmgW,dmgW2:dmgW,qishuAll:qishu,qishu,all,boss:god,pvp:god,hp,def});
 const M96 =GDT(77.8, 49.4,44.2, 9.0, 8.0, 4.4, 6.2, 9.8, 3.2,3.2,2960,39);
 const M100=GDT(90.6, 57.4,51.4,10.4, 9.4, 5.2, 7.4,11.4, 3.6,3.8,3444,45.4);
 const M105=GDT(105.6,66.8,59.8,12.2,10.8, 6.0, 8.6,13.4, 4.2,4.4,4010,52.8);
@@ -1134,6 +1131,17 @@ function TN(t){const s=sc(),sy=SYS[s.sys];return ({none:'（空）',maxA:'最大
   ti:'体',yu:'御',hp:'气血最大值',def:'外功防御',outer:'最大鸣金',dmgW:s.w1+'武学增伤',
   dmgW2:s.w2+'武学增伤'+(s.u2?'':'（不计）'),all:'全武学增效',boss:'首领增伤',pvp:'玩家增效',qishuAll:'全奇术增伤',qishu:'奇术增伤（单体）'})[t]||t}
 const slotName=k=>k==='dao'?sc().w1:k==='qiang'?sc().w2:SLOTN[k];
+/* v260（11-17 你定）：流派定音的具体名字（12 个流派各 5 条，社区表，没逐条对过游戏）。装备上存在 dy.n；
+   计算照旧只看 dy.t（skill = 主武器那门武学，skill2 = 副武器那门），名字只是记下来、显示出来。 */
+const DYSKILL=["悬锋取月·轻重击派生增伤", "拨山取月枪·武学技增伤", "拨山取月枪·特殊技增伤", "悬身断水·浓醺技能增伤", "醉梦游春·武学技增伤", "醉梦游春·特殊技增伤", "九曲惊神枪·蓄力技增伤", "九曲惊神枪·武学技增伤", "天志垂象·蓄力技增伤", "天志垂象·轻击及派生技增伤", "天志垂象·武学技增伤", "泥犁三垢·强效轻击增伤", "泥犁三垢·武学技增伤", "泥犁三垢·特殊技增伤", "青山执笔·蓄力技增伤", "青山执笔·特殊及追击技增伤", "决狱悬锋枪·武学技增伤", "决狱悬锋枪·特殊技增伤", "粟子游尘·武学技增伤", "粟子游尘·鼠鼠增伤", "文动霓裳·轻重击及派生增伤", "文动霓裳·武学技增伤", "文动霓裳·特殊技增伤", "无名枪法·蓄力技增伤", "无名枪法·特殊技增伤", "无名剑法·蓄力技增伤", "无名剑法·武学技增伤", "无名剑法·特殊技增伤", "明川药典·治疗技增疗", "明川药典·武学技增疗", "明川药典·特殊技增疗", "十方破阵·蓄力技增伤", "十方破阵·武学技增伤", "断水双诀·轻击增伤", "断水双诀·武学技增伤", "千机索天·重击增伤", "千机索天·特殊技增伤", "悬身拳法·武学技增伤", "悬身拳法·特殊技增伤", "斩雪刀法·蓄力技增伤", "斩雪刀法·武学技增伤", "斩雪刀法·轻重击派生技增伤", "千香引魂蛊·武学技增疗", "千香引魂蛊·特殊技增疗", "八方风雷枪·蓄力技增伤", "八方风雷枪·特殊技增伤", "积矩九剑·流血增伤", "积矩九剑·武学技增伤", "积矩九剑·特殊技增伤", "嗟夫刀法·蓄力技增伤", "嗟夫刀法·护盾增效", "嗟夫刀法·特殊技增伤", "粟子行云·蓄力技增伤", "粟子行云·武学技增伤", "粟子行云·特殊技增伤", "九重春色·轻重击及派生增伤", "九重春色·武学技增伤", "九重春色·高频弹道增伤", "杏游草野·重击及派生技增伤", "杏游草野·武学技增伤"];
+const DYCOMBO={'悬身断水':'悬身拳法','悬锋取月':'决狱悬锋枪'};       // 两门合写的那条：算在哪个流派（按这门武学找）
+const dyNorm=x=>String(x||'').replace(/[・･•∙‧]/g,'·').replace(/\s+/g,'');
+function dySkills(t){const s0=sc(),sid=Object.keys(SCH).find(k=>SCH[k]===s0),arts=WXSCH[sid]||[];
+  const mine=DYSKILL.filter(n=>{const a=n.split('·')[0];return arts.includes(a)||arts.includes(DYCOMBO[a])});
+  if(t!=='skill'&&t!=='skill2')return [];
+  const a=arts[t==='skill2'?1:0];
+  return mine.filter(n=>{const h=n.split('·')[0];return h===a||(t==='skill'&&DYCOMBO[h])})}
+const dnOpts=(t,cur)=>'<option value="">（哪个技能：没选）</option>'+dySkills(t).map(n=>`<option value="${n}"${n===cur?' selected':''}>${n}</option>`).join('');
 function dyOpts(k){const s=sc();
   return ATKSLOT.has(k)?{none:'（未定音）',extPen:'外功穿透 7.7~12.8',defRes:'外功抗性 7.7~12.8（不计）',wxPen:'无相穿透 9.1~15.2（算进属攻穿透）',selfPen:'属攻穿透（不计）'}
     :{none:'（未定音）',skill:s.w1+'武学·护盾/蓄力/特殊技 4.2~7%',skill2:s.w2+'武学·同上'+(s.u2?'':'（不计）')}}
@@ -1717,7 +1725,16 @@ function setBudget(vi,sub,lk){
   const Wc={};Object.keys(W).forEach(t=>Wc[cT(t)]=(Wc[cT(t)]||0)+W[t]);
   const have={},waste=[],total={};
   inst.forEach(x=>total[x.t]=(total[x.t]||0)+1);
-  ord.forEach(x=>{if((Wc[x.t]||0)>(have[x.t]||0))have[x.t]=(have[x.t]||0)+1;else waste.push(x)});
+  /* v263（11-17）：五维换算出来的替补（体→气血、御→外防、劲→最大外功，SUBFIX）不算废 ——
+     目标那条还没填满时，替补就占目标的配额。只在「满配要目标、又不要替补」的套里生效：
+     会心外攻那种满配同时要大外和劲的，一条都不会变（48 件回归逐条验过）。
+     劲→最小外功那对（伤害权重，subRate）不在这里，验货照旧不认 —— 11-17 你定「验货不要动」。 */
+  const SUBBACK={};Object.entries(SUBOF).forEach(([c,st])=>{if(SUBFIX[c]&&Wc[c]&&!Wc[st])SUBBACK[st]=c});
+  ord.forEach(x=>{
+    if((Wc[x.t]||0)>(have[x.t]||0)){have[x.t]=(have[x.t]||0)+1;return}
+    const bk=SUBBACK[x.t];
+    if(bk&&(Wc[bk]||0)>(have[bk]||0)){have[bk]=(have[bk]||0)+1;x.sub=bk;return}
+    waste.push(x)});
   /* 每条废词条为什么废，一句话 —— 装备卡的提示、废词条面板都读这一句 */
   const Dd=deadTypes(),OK=okTypes(vi);
   waste.forEach(x=>{x.over=!!Wc[x.t]&&!(Dd.has(x.raw)||Dd.has(x.t));x.why=Dd.has(x.raw)||Dd.has(x.t)?TN(x.raw)+'：这个流派用不到'
@@ -1858,7 +1875,9 @@ function verdictOf0(it){
   // 缺什么（转律救不了的）：神力、胚
   const lackOf=()=>{const a=[];
     if(q.missHard.length)a.push('缺 '+q.missHard.map(t=>TN(t)).join('、'));
-    if(!q.peiOK&&q.peiWant!=='none')a.push(`胚不对（是 ${TN(q.myPei)}，要 ${TN(q.peiWant)}）`);
+    /* v263：胚是「满配也要、只是不在这一格」的（peiSoft）不算胚不对 —— 下面胚建议那块会写「是垫的」。
+       以前肉坦靠 same 把气血/体/御/外防折成一种，看不出来；折算拿掉后这句才露出来。 */
+    if(!q.peiOK&&!q.peiSoft&&q.peiWant!=='none')a.push(`胚不对（是 ${TN(q.myPei)}，要 ${TN(q.peiWant)}）`);
     return a.join('；')};
   /* v255（审查 #32）：2 条以上废词条、能转掉 1 条时，说清楚哪条能转、哪条永久卡住（总档 7.1⑤） */
   const stuckText=()=>{if(!q.bad.length)return '';
@@ -1879,7 +1898,9 @@ function verdictOf0(it){
   }
   /* v200（用户 2026-11-10，佩#3）：胚对、神力齐，只差 1 条，但已承音锁死 → 合格件（难的都带齐了），建议写短 */
   /* v255（审查 #32，你定 3A）：没承音但一样补不上的（转律位压在别的律上 / 全套缺的这件转不出）和承音锁死同一条规则，免得「承音后反而升成合格件」 */
-  if((lk||!movable)&&q.peiOK&&!q.missHard.length&&q.bad.length===1&&(usedBy(it.id).length||!itemsOf(it.slot).some(x=>x.id!==it.id&&qOf(x,vi)>qOf(it,vi)))){const b=q.bad[0],m=(im&&im.miss&&im.miss[0])||(q.capBlk&&q.capBlk[0]&&q.capBlk[0].t);
+  /* v263：合格件这一支也认 peiSoft（胚是满配要的、只是不在这一格），和 1811 行的 pass 一致。
+     肉坦满配同时要气血 9 / 外防 9，冠胄开到哪种胚都行，不该因为 L 串钉在气血就掉成过渡件。 */
+  if((lk||!movable)&&(q.peiOK||q.peiSoft)&&!q.missHard.length&&q.bad.length===1&&(usedBy(it.id).length||!itemsOf(it.slot).some(x=>x.id!==it.id&&qOf(x,vi)>qOf(it,vi)))){const b=q.bad[0],m=(im&&im.miss&&im.miss[0])||(q.capBlk&&q.capBlk[0]&&q.capBlk[0].t);
     const I=q.I,how=lk?'承音锁死':I.state==='busy'?`转律位已用在律${I.zl}`
       :I.blockedPool&&I.blockedPool.length?`全套缺的 ${I.blockedPool.map(TN).join('、')} 转律转不出`
       :I.blockedOwn&&I.blockedOwn.length?`全套缺的 ${I.blockedOwn.map(TN).join('、')} 这件律里已经有了`:'转律补不上';
@@ -2201,7 +2222,7 @@ function dyLine(t,s){
     +(t.pen!=null?` 目标 <b>${t.pen}</b>`:'')+(DYMAX[lvNum(LVK())]?`（单件最高 ${DYMAX[lvNum(LVK())].pen}）`:'')
     +` · 防具四件 <b>指定技能增效</b>（${esc(s.w1)}武学·护盾/蓄力/特殊技）`+(t.dySkill!=null?` 目标 <b>${t.dySkill}%</b>`:'')+(DYMAX[lvNum(LVK())]?`（单件最高 ${DYMAX[lvNum(LVK())].sk.toFixed(1)}%）`:'')}
 const dyRow=it=>{const t=(it.dy||{}).t||'none',n=(dyOpts(it.slot)||{})[t];
-  return `<li class="dy${t==='none'?' emp':''}"><span class="k">定音</span><span class="t">${t==='none'?'未定音':esc((n||t).replace(/\s*[\d.]+~[\d.]+%?/,''))}</span><span class="v">${t==='none'?'':fmt(+(it.dy||{}).v||0,1)}</span>${t!=='none'&&(it.dy||{}).r!=null?ylBar({t,r:it.dy.r},it.st):''}</li>`};
+  return `<li class="dy${t==='none'?' emp':''}"><span class="k">定音</span><span class="t">${t==='none'?'未定音':esc((it.dy.n&&/^skill/.test(t)?it.dy.n:(n||t)).replace(/\s*[\d.]+~[\d.]+%?/,''))}</span><span class="v">${t==='none'?'':fmt(+(it.dy||{}).v||0,1)}</span>${t!=='none'&&(it.dy||{}).r!=null?ylBar({t,r:it.dy.r},it.st):''}</li>`};
 const shortV=it=>{const v=verdictOf(it);return v?'·'+v.n.split('·')[0].replace(/件$/,''):''};
 const zlTxt=it=>`<span class="chip zlR">${(+it.zl||0)?'已转 律'+it.zl:zlUnk(it)?'转律位未知':'转律未用'}</span>`;
 function drawSlots(){
@@ -2752,8 +2773,33 @@ function procOf(W,d){
      多出来的、满配不要的都不算；加总 ÷ 40。原装满值按角色单人等级的装备阶（总档 3.1）。全套承音满 = 94%。
    坦克套（体/御/外防都记成气血的套）：坦度毕业率 = 前 N 条坦词条 min(数值 ÷ 原装满值, 1) 之和 ÷ N（审查 #24），算法同上，只看坦词条。
    三条线：输出 75 / 85 / 95，坦度 70 / 80 / 90（待你定）。 */
-const GRAD_LINES=[[75,'及格'],[85,'毕业'],[95,'机甲']], TANK_LINES=[[70,'及格'],[80,'毕业'],[90,'机甲']];
+const GRAD_LINES=[[75,'及格'],[85,'毕业'],[94,'机甲']]   /* v262（11-17 你定 A）：全套承音满最高就是 94%，95 的线永远够不到 */, TANK_LINES=[[70,'及格'],[80,'毕业'],[90,'机甲']];
 const tankCap=(t,st)=>capOf(t,st);
+/* v262（11-17 你定）：最小外功当劲的替补，**只用在毕业率**，验货/转律建议一点不动（你说先别动）。
+   系数 = 1 条满值最小外功 ÷ 1 条满值劲 的伤害权重比，按这套**目标三率**推（不按身上的，所以不会随装备浮动）：
+     目标黄字 → 生效概率（和 procOf 同一套触发顺序）→ 最大 / 最小外功各自的权重（伤害公式见总档 13.1）
+     1 条劲 = JIN2MAX 大外 + JIN2MIN 小外；1 条小外 = 满值小外
+   不含流派自己的战斗天赋（嗟夫刀法蓄力 +24% 会心那类）—— 11-17 你定用同一套算法，差别约 0.02。 */
+const SUBOF={jin:'minA',hp:'ti',def:'yu',maxA:'jin'};
+/* 三对固定系数（五维换算 4.1 推的，100 阶满值）：
+     体 → 气血  57.4 × 60   = 3444 气血 ÷ 3444 = 1.000（差 0，不是近似）
+     御 → 外防  57.4 × 0.57 = 32.72 外防 ÷ 45.4 = 0.721 → 11-17 你定按 1.00 算，
+                因为一条御另送 57.4 × 17 = 975.8 气血（≈0.28 条气血）把差的补回来了
+     劲 → 大外  57.4 × 1.36 = 78.06 大外 ÷ 90.6 = 0.861（另送 12.63 最小外功，没算进去）
+   jin → minA 不在这里：那对是伤害权重比，按目标三率现算（subRate）。*/
+const SUBFIX={hp:1,def:1,maxA:0.86};
+const subK=c=>c==='jin'?subRate():(SUBFIX[c]||0);
+function subRate(){
+  const t=tg();if(!t)return 0;
+  const a=Math.min(1,(+t.acc||0)/100),i=Math.min(1,(+t.intent||0)/100);
+  let zj=0;try{zj=(panelW(calcPanel().R).zjCrit||0)/100}catch(e){}
+  const c=Math.min(1,(+t.crit||0)/100+zj);
+  const crit=a*Math.min(c,Math.max(0,1-i)),normal=a*Math.max(0,1-i-c),graze=(1-i)*(1-a);
+  const wMax=i*1.35+crit*1.5/2+normal/2, wMin=crit*1.5/2+normal/2+graze;
+  const st=String(lvData().tier),fj=fullOf('jin',st),fm=fullOf('minA',st);
+  if(!(wMax>0)||!(wMin>0)||!fj||!fm)return 0;
+  const jin=fj*JIN2MAX*wMax+fj*JIN2MIN*wMin;
+  return jin>0?Math.max(0,Math.min(1,fm*wMin/jin)):0}
 function withVEQ(set,fn){const o=VEQ;VEQ=set;try{return fn()}finally{VEQ=o}}
 const gradBand=(pct,lines)=>pct==null?null:lines.filter(([x])=>pct>=x-1e-9).map(([,n])=>n).pop()||'未及格';
 const gradCol=(pct,lines)=>pct==null?'var(--muted)':pct>=lines[2][0]?'var(--cyan)':pct>=lines[1][0]?'var(--jade)':pct>=lines[0][0]?'var(--copper)':'var(--bad)';
@@ -2779,8 +2825,13 @@ function gradCalc(){
   const have={};let nEq=0;
   SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);if(!it)return;nEq++;
     it.affixes.forEach(a=>{if(!a.t||a.t==='none')return;const c=cT(a.t),full=fullOf(a.t,st);if(!full)return;(have[c]=have[c]||[]).push(Math.min(1,(+a.v||0)/full))})});
-  const rows=Object.entries(want).map(([c,n])=>{const arr=(have[c]||[]).slice().sort((a,b)=>b-a),got=arr.slice(0,n).reduce((a,x)=>a+x,0);
-    return {c,n,has:arr.length,got,gap:n-got}}).sort((a,b)=>b.gap-a.gap);
+  const rows=Object.entries(want).map(([c,n])=>{const arr=(have[c]||[]).slice().sort((a,b)=>b-a),got0=arr.slice(0,n).reduce((a,x)=>a+x,0);
+    /* v262 起：满配要的这条不够时，拿满配「不要」的替补按系数顶上（SUBOF / subK）。满配本来就要替补那条的流派不顶。*/
+    let sub=0,subN=0,subT=SUBOF[c],k=0;
+    if(subT&&!want[subT]&&arr.length<n){k=subK(c);
+      if(k>0){const ex=(have[subT]||[]).slice().sort((a,b)=>b-a).slice(0,n-arr.length);
+        subN=ex.length;sub=ex.reduce((a,x)=>a+x*k,0)}}
+    return {c,n,has:arr.length,subN,k,subT:subN?subT:null,got:got0+sub,gap:n-got0-sub}}).sort((a,b)=>b.gap-a.gap);
   const N=rows.reduce((a,r)=>a+r.n,0),sum=rows.reduce((a,r)=>a+r.got,0);
   Object.assign(out,{rows,N,sum,nEq,st,lines:GRAD_LINES,pct:N&&nEq?sum/N*100:null,pctCy:CY*100});
   return out}
@@ -2793,20 +2844,20 @@ function gradBox(){let G;try{G=gradCalc()}catch(e){LOGE(e,'毕业率');return ''
       <span><span class="gk">现在</span> <b>${G.have}</b> 条（${Object.entries(G.cnt).filter(([,n])=>n).map(([k,n])=>NM[k]+' '+n).join(' · ')||'—'}）</span>
       <span><span class="gk">平均成色</span> <b>${G.avg!=null?fmt(G.avg,1)+'%':'—'}</b></span></div></div>
       <span class="hint">坦度毕业率 = 最好的 ${G.N} 条坦词条（体/气血/御/外防）各自 数值 ÷ ${G.st} 阶原装满值（气血 ${tankCap('hp',G.st)}、外防 ${tankCap('def',G.st)}），加总 ÷ ${G.N}；缺的条算 0 · 全套承音满最高 94%</span></div>`}
-  const g1=x=>fmt(x,1);
+  const g1=x=>fmt(x,1),lean=D.opt.rateLean!==false;      /* v262（11-17 你定）：默认精简；「显示说明」才出格数、差最多、怎么算的 */
   const short=G.rows.filter(r=>r.gap>0.05).slice(0,3).map(r=>`${esc(TN(r.c))} 差 <b>${g1(r.gap)}</b> 格`).join(' · ');
   const side=`<span><span class="gk">现在</span> <b>${band||'—'}</b> <span class="hint">（${lineTxt}）</span></span>
-    <span><span class="gk">满配 ${G.N} 格</span> 你拿到 <b>${g1(G.sum)}</b> 格</span>
-    ${short?`<span><span class="gk">差最多</span> ${short}</span>`:''}
-    <span><span class="gk">全套承音满</span> <b>${fmt(G.pctCy,0)}%</b></span>`;
-  const how=G.pct==null?`<span class="hint">这套还没穿装备</span>`
-    :`<details class="hint"><summary>怎么算的</summary>满配「${esc(curV().n)}」${G.N} 格，每格取你身上同类词条里最好的「数值 ÷ ${G.st} 阶原装满值」（封顶 1；多出来的、满配不要的不算），加总 ÷ ${G.N}。<br>
+    ${lean?'':`<span><span class="gk">满配 ${G.N} 格</span> 你拿到 <b>${g1(G.sum)}</b> 格</span>
+    ${short?`<span><span class="gk">差最多</span> ${short}</span>`:''}`}
+    <span><span class="gk">全套承音满</span> <b>${fmt(G.pctCy,0)}%</b> <span class="hint">＝机甲线</span></span>`;
+  const how=G.pct==null?`<span class="hint">这套还没穿装备</span>`:lean?''
+    :`<details class="hint"><summary>怎么算的</summary>满配「${esc(curV().n)}」${G.N} 格，每格取你身上同类词条里最好的「数值 ÷ ${G.st} 阶原装满值」（封顶 1；多出来的、满配不要的不算），加总 ÷ ${G.N}。${G.rows.filter(r=>r.subT).map(r=>`<br>${esc(TN(r.c))} 不够时，${esc(TN(r.subT))} 按 <b>×${fmt(r.k,2)}</b> 当替补顶上（只影响毕业率，不影响验货）。`).join('')}<br>
       <table class="tbl" style="margin-top:4px"><thead><tr><th>词条</th><th>满配要</th><th>你身上</th><th>拿到</th></tr></thead><tbody>
-      ${G.rows.map(r=>`<tr><td>${esc(TN(r.c))}</td><td class="n">${r.n}</td><td class="n">${r.has}</td><td class="n">${g1(r.got)}${r.gap>0.05?` <span style="color:var(--bad)">−${g1(r.gap)}</span>`:''}</td></tr>`).join('')}
+      ${G.rows.map(r=>`<tr><td>${esc(TN(r.c))}${r.subN?` <span class="hint">+${r.subN} 条${esc(TN(r.subT))}替补</span>`:''}</td><td class="n">${r.n}</td><td class="n">${r.has}</td><td class="n">${g1(r.got)}${r.gap>0.05?` <span style="color:var(--bad)">−${g1(r.gap)}</span>`:''}</td></tr>`).join('')}
       </tbody></table>${g1(G.sum)} ÷ ${G.N} = <b>${g1(G.pct)}%</b></details>`;
   return `<div class="gwrap"><div class="gring">${gradRing(G.pct,'毕业率',col,G.lines)}<div class="gl">${side}</div></div>${how}</div>`}
 function drawRates(){
-  const lean=!!D.opt.rateLean;              // 精简模式：只留三条率本身
+  const lean=D.opt.rateLean!==false;              // v262：默认精简（11-17 你定「不用那么多提示词」）
   const t=tg(),g=rateGear(),d=divOf(),W=panelW(calcPanel().R);
   const rows=RATES.map(([k,n])=>{
     const tgt=t[k],w=W[k+'W'];
@@ -2820,33 +2871,25 @@ function drawRates(){
         ><span class="wv">${fmt(w,1)}%</span><span class="yv">(${fmt(y,1)}%)</span></span>
       <span class="rt">目标 <span class="yv">${tgt!=null?tgt+'%':'—'}</span></span>
       <span class="rd">${tgt==null?'<span class="hint">这套没定目标</span>'
-        :(ok?`<span class="rok">✓</span>`:`<span class="rno">−${fmt(-gapY,1)}%</span>`)
+        :(ok?`<span class="rok">✓</span>`:`<span class="rno">少 ${fmt(-gapY,1)}%</span>`)
           +(lean?'':(needGap!=null&&needGap>0.05?`<span class="hint"> · 还要 ${fmt(needGap,1)} 白字 ≈ <b>${fmt(needGap/perAff,2)} 条</b></span>`:''))}</span>
       ${lean?'':`<span class="rg hint">装备贡献 ${fmt(g[k],1)} 白字${
         k==='crit'&&g.raw.min>0?`（含 敏${fmt(g.raw.min,1)} 换算的 ${fmt(g.raw.min*MIN2CRIT,1)}）`
         :k==='intent'&&g.raw.shi>0?`（含 势${fmt(g.raw.shi,1)} 换算的 ${fmt(g.raw.shi*SHI2INT,1)}）`:''
       }${y>=RCAP[k]-0.05?` · <b style="color:var(--bad)">已撞上限 ${RCAP[k]}%</b>`:''}</span>`}
       ${lean?'':zjLine(k,y,W)}</div>`}).join('');
+  /* v262（11-17 你定）：最终会心会意率排在会意率下面，和三率同一套字样，只放总值；四项拆开收进「显示说明」。
+     和游戏「最终会心会意率」面板同一个数（11-17 验过，四项差 0，总档 4.4）。 */
   const pr=procOf(W,d);
-  const prLine=!pr?'':`<div class="adv" style="margin-top:6px"><b>实际打出来的比例</b>`
-    +`<span class="hint"> · 会意不受精准影响；会心＝精准×min(会心，1−会意)；没精准命中就擦伤</span><br>`
-    +[['会意（×1.35最大外攻）',pr.intent,'var(--copper)'],
-      ['会心（×1.5普通）',pr.crit,'var(--good)'],
-      ['普通',pr.normal,'var(--muted)'],
-      ['擦伤（只有最小外攻）',pr.graze,'var(--bad)']]
-      .map(([n,v,c])=>`<span style="display:inline-block;min-width:168px"><b style="color:${c}">${fmt(v*100,1)}%</b> <span class="hint">${n}</span></span>`).join('')
-    +`</div>`;
-  /* 「省略说明」只收起解释性内容，三条率本身永远留着 */
-  $('rates').innerHTML=gradBox()+rows
-    +(lean?'':prLine+`<div class="hint" style="margin-top:6px">三率是按基本盘 + 这套的装备、心法、套装、弓算出来的（「数据」页看每一层），换任何一样都会跟着变 · 判定除数 <b>${fmt(d,2)}</b>（${esc(lvData().n)} 判定抗性 ${lvData().jr}%）</div>`);
+  const fin=!pr?'':`<div class="rate" style="grid-template-columns:auto auto 1fr">
+      <span class="rn">最终会心会意率</span>
+      <span class="rt"><span class="wv">${fmt((pr.crit+pr.intent)*100,2)}%</span></span><span></span>
+      ${lean?'':`<span class="rg hint">会心 ${fmt(pr.crit*100,2)} · 会意 ${fmt(pr.intent*100,2)} · 普通 ${fmt(pr.normal*100,2)} · 擦伤 ${fmt(pr.graze*100,2)}　·　会意不受精准影响；会心＝精准×min(会心，1−会意)；没精准命中就擦伤</span>`}</div>`;
+  $('rates').innerHTML=gradBox()+rows+fin
+    +(lean?'':`<div class="hint" style="margin-top:6px">三率是按基本盘 + 这套的装备、心法、套装、弓算出来的（「数据」页看每一层），换任何一样都会跟着变 · 判定除数 <b>${fmt(d,2)}</b>（${esc(lvData().n)} 判定抗性 ${lvData().jr}%）</div>`);
   $('rateTog').textContent=lean?'显示说明':'省略说明';
   $('rateTog').className='mini hd-r'+(lean?' p':'')}
 function drawDist(){
-  const openD=D.opt.distOpen!==false;
-  $('distTog').textContent=openD?'收起':'展开';
-  $('distTog').className='mini hd-r'+(openD?'':' p');
-  $('distBox').style.display=openD?'':'none';
-  if(!openD)return;
   const WM=wasteMap(),s=sc(),rows=[];
   /* 要写清楚是哪个流派的毕业词条 —— 光写变体名（「115·机甲大外流」）
      看不出是裂石·威还是牵丝·玉的，而两边的要求完全不同。（用户 2026-10-28）*/
@@ -2854,11 +2897,23 @@ function drawDist(){
   const all=new Set([...Object.keys(WM.want),...Object.keys(WM.have)]);
   [...all].filter(t=>!['none','outer'].includes(t)).forEach(t=>rows.push({t,have:WM.have[t]||0,want:WM.want[t]||0}));
   rows.sort((a,b)=>(b.want-a.want)||(b.have-a.have));
-  $('dist').innerHTML='<thead><tr><th>词条</th><th>现在</th><th>满配</th><th></th></tr></thead><tbody>'+
-    rows.map(x=>{const d=x.have-x.want;
-      return `<tr><td>${esc(TN(x.t))}</td><td class="num">${x.have}</td><td class="num">${x.want||'—'}</td>
-      <td>${d===0&&x.want?'<span class="chip ok">刚好</span>':d<0?`<span class="chip no">差 ${-d}</span>`:x.want?`<span class="chip cy">多 ${d}</span>`:'<span class="chip">不要</span>'}</td></tr>`}).join('')+'</tbody>';
-  const v=curV();$('distSub').textContent=v.own?'按你自己定的条数':'按满配布局';
+  /* v262：最小外功当劲的替补（口径和毕业率同一个 subRate），只改这张表和毕业率，验货不动 */
+  const subU={},usedFor={};
+  /* 替补那条只要还能顶（满配要 c、不要 st、系数 >0），就在它自己那行写「替补」——
+     哪怕 c 现在已经够了、一条都没用上，也要让你知道它不是废词条。（v263，11-17 你定）*/
+  Object.entries(SUBOF).forEach(([c,st])=>{if(!(WM.want[c]>0)||WM.want[st]||!(subK(c)>0))return;
+    subU[st]=0;const need=(WM.want[c]||0)-(WM.have[c]||0);
+    if(need>0&&(WM.have[st]||0)>0){const u=Math.min(WM.have[st],need);subU[st]=u;usedFor[c]=u}});
+  $('dist').innerHTML='<thead><tr><th>词条</th><th>现在</th><th>满配</th><th>差</th></tr></thead><tbody>'+
+    rows.map(x=>{const sN=usedFor[x.t]||0,d=x.have+sN-x.want;
+      const now=x.have+(sN?` <span class="chip cy">+${sN}替</span>`:'');
+      const cell=subU[x.t]!=null?`<span class="chip cy">替补${subU[x.t]?' '+subU[x.t]:''}</span>`
+        :!x.want?'<span class="chip">不要</span>'
+        :d===0?'<span class="chip ok">刚好</span>'
+        :d<0?`<span class="chip no">少 ${-d} 条</span>`
+        :`<span class="chip cy">多 ${d} 条</span>`;
+      return `<tr><td>${esc(TN(x.t))}</td><td class="num">${now}</td><td class="num">${x.want||'—'}</td><td>${cell}</td></tr>`}).join('')+'</tbody>';
+  const v=curV();$('distSub').textContent=v.own?'· 按你自己定的条数':'';
 }
 
 function drawWaste(){
@@ -3489,6 +3544,7 @@ function renderEd(host){
     <div class="bar" style="margin-top:6px;opacity:.85">
       <label class="f">定音<select id="e_dt">${Object.entries(dyOpts(it.slot)).map(([k,v])=>`<option value="${k}"${k===it.dy.t?' selected':''}>${v}</option>`).join('')}</select>
         <input type="number" id="e_dv" step="0.1" value="${it.dy.v||0}"></label>
+      <select id="e_dn"${dySkills(it.dy.t).length?'':' style="display:none"'}>${dnOpts(it.dy.t,it.dy.n||'')}</select>
       <span class="hint">定音等两套定下来再调</span>
     </div>
     <div class="bar" style="margin-top:10px">
@@ -3517,7 +3573,8 @@ function renderEd(host){
       if(it2){e2.preventDefault();go(it2.getAsFile())}};}
   $('e_slot').onchange=()=>{const k=$('e_slot').value;
     [0,1,2,3,4].forEach(i=>{const cur=$('e_t'+i).value;$('e_t'+i).innerHTML=i===0?pOpts(k):opts(k,cur);$('e_t'+i).value=[...$('e_t'+i).options].some(o=>o.value===cur)?cur:'none'});
-    $('e_dt').innerHTML=Object.entries(dyOpts(k)).map(([a,b])=>`<option value="${a}">${b}</option>`).join('');upName()};
+    $('e_dt').innerHTML=Object.entries(dyOpts(k)).map(([a,b])=>`<option value="${a}">${b}</option>`).join('');$('e_dt').onchange();upName()};
+  $('e_dt').onchange=()=>{const t=$('e_dt').value,cur=$('e_dn').value;$('e_dn').innerHTML=dnOpts(t,cur);$('e_dn').style.display=dySkills(t).length?'':'none'};
   /* 2026-10-28：改「阶」曾经会把五条数值一次性填成该阶满值，已拆掉 —— 用户的件很多是承音过但还没培养满的，
      自动覆盖等于把真实数值抹掉。2026-11-07 起「按所选阶填满值」按钮也取消了，词条数值一律自己填。 */
   $('e_st').onchange=()=>{const st=$('e_st').value;upName();
@@ -3526,7 +3583,7 @@ function renderEd(host){
   $('e_save').onclick=async()=>{
     const qNow=$('e_q').checked,qOld=it.q==='p';
     const o={pid:D.pid,slot:$('e_slot').value,name:nameFor(it,$('e_slot').value,$('e_st').value),st:$('e_st').value,zl:+$('e_zl').value||0,...($('e_zl').value==='u'?{}:{zlk:1}),
-      dy:{t:$('e_dt').value,v:+$('e_dv').value||0},note:it.note||'',
+      dy:{t:$('e_dt').value,v:+$('e_dv').value||0,...(/^skill/.test($('e_dt').value)&&$('e_dn').value?{n:$('e_dn').value}:{})},note:it.note||'',
       base:qNow!==qOld?{}:(it.base||{}),            // 自带值不再手填：已有的保留，紫装勾选一变就清掉按阶位重算
       affixes:[0,1,2,3,4].map(i=>({t:$('e_t'+i).value,v:+$('e_v'+i).value||0}))};
     if(qNow)o.q='p';
@@ -4501,7 +4558,7 @@ function ocrPrompt(){
 1. 「装备等阶」下面、圆点列表上面的那一两行 —— 装备自带的基础值（例如「最大外功攻击 135」「气血最大值 6879 / 外功防御 25」）。
    这些**不是词条**，前面没有圆点。**完全忽略。**
 2. 前面带实心圆点「•」的行 —— **正好 5 条，这才是词条**。第 1 条是胚，后面 4 条是调律。
-3. 最后一行前面带菱形「◆/❖」的 —— 那是定音，**不是词条，忽略**。
+3. 最后一行前面带菱形「◆/❖」的 —— 那是定音，**不算进 5 条词条**，单独放进 dy。
 
 只数带圆点的行，正好 5 条。数出来不是 5 条，说明把自带基础值或定音算进去了，重数。
 
@@ -4511,18 +4568,22 @@ ${slots}
 词条键名对照：
   ${all}
 
+游戏里的写法带「攻击」两个字：「最大外功攻击 / 最小外功攻击」= "maxA" / "minA" —— **这是外功，不是属攻**，不要填成 selfMax / selfMin。
+
 **属攻要按名字认，不能凭感觉归类：** 当前角色是「${SYSN[sc().sys]}」系，只有写着「最大${SYSN[sc().sys]}攻击 / 最小${SYSN[sc().sys]}攻击」的才是 "selfMax" / "selfMin"（武器上写「无相」的是 "wxMax" / "wxMin"）。
 截图里出现**别的系**的属攻（${Object.values(SYSN).filter(n=>n!==SYSN[sc().sys]).map(n=>'最大'+n+'攻击').join('、')} 等，不管最大还是最小）一律填 "outer"，**不要**因为它也是「最大◯◯攻击」就填成 selfMax。
 
 只回 JSON：
-{"slot":"pei","name":"绝尘辟邪","zl":3,"cy":true,"tier":100,"affixes":[{"t":"maxA","v":85.2},{"t":"maxA","v":85.2},{"t":"all","v":3.4},{"t":"crit","v":9.8},{"t":"hp","v":3237}]}
+{"slot":"pei","name":"绝尘辟邪","cy":true,"tier":100,"affixes":[{"t":"maxA","txt":"最大外功攻击","v":85.2},{"t":"maxA","txt":"最大外功攻击","v":85.2},{"t":"all","txt":"全武学增效","v":3.4},{"t":"crit","txt":"[转]会心率","v":9.8,"zl":true},{"t":"hp","txt":"气血最大值","v":3237}],"dy":{"txt":"外功抗性","v":12.4}}
 
 规则：
 - slot 用上面列出的键名之一；武器要分清是哪一把（看「武器·」后面的字）。
 - affixes 正好 5 项，顺序照圆点行从上到下；第 1 项必须在该部位的胚池里。
 - t 只能用上面列出的键名；百分号去掉只留数字；看不出来写 "none"。
+- txt：把这一行的词条名**照抄**下来（不要「[转]」、不要数值），一个字都不要改；页面会拿它再核对一次 t。
 - name 是标题处的装备名（如「绝尘辟邪」）。
-- zl：哪一条调律前面标了「[转]」就填它的序号（胚不算，第一条调律是 1；上例中 [转]会心率 是第 4 条圆点行，即调律第 3 条，所以 zl 填 3）。没标就填 0。
+- zl：哪一条词条名前面印着「[转]」，就**在那一条里**加 "zl":true（像上例那样）。**不要数第几条、不要算序号**，位置由页面自己看。一条都没印就一条都不加。
+- dy：菱形那一行（定音）。txt 把名字照抄下来（如「外功穿透」「嗟夫刀法·护盾增效」），v 是数值（百分号去掉）；没有菱形行就写 null。
 - cy：「装备等阶」那行写着「承音」就 true，否则 false。
 - tier：「装备等阶」那行的阶数，100 或 96。
 - 不要解释，只回 JSON。`}
@@ -4549,16 +4610,34 @@ async function runOCR(blob,msg){
   }else slotNote='<span class="hint"> · 部位没读出来，用你选的那个</span>';
   const ALL=new Set([...COMMON,...(SLOTSP[slot]||[])]);
   const got=[];
+  /* v260（11-17 你发现「最大外功攻击」被读成最大裂石）：读图的模型偶尔把词条归错类。让它把词条名照抄回来（txt），
+     页面按名字再认一次（和本地识别同一张名字表）；两边不一样就以照抄的字为准，并在提示里写出来 */
+  const LB=ocrLabels(sc()),byTxt=[];
   for(let i=0;i<5;i++){const a=r.affixes[i]||{};
-    const t=ALL.has(a.t)?a.t:'none';
+    let t=ALL.has(a.t)?a.t:'none';
+    if(a.txt){const nm=ocrN(String(a.txt).replace(/\[?\s*转\s*\]?/,'')),m=nm?ocrMatch(nm,LB):null;
+      if(m&&m.e===0&&!(m.L===1&&nm.length>2)&&ALL.has(m.code)&&m.code!==t){byTxt.push({i,was:t,now:m.code,txt:String(a.txt)});t=m.code}}
     got.push({t,v:Math.round((+a.v||0)*10)/10})}
   // 胚不在这个部位的胚池里 → 标出来但照填，让用户自己判断
   const peiBad=got[0].t!=='none'&&!(PEIPOOL[slot]||[]).includes(got[0].t);
   got.forEach((a,i)=>{$('e_t'+i).value=a.t;$('e_v'+i).value=a.v});
-  const zl=+r.zl;if(zl>=0&&zl<=4)$('e_zl').value=String(zl|0);
-  // 本地识别会顺带读出定音那行：攻击部位 = 外功穿透；防具 = 武学技能增伤（默认算主武器，不对自己改）
-  if(r.dy&&r.dy.v){const t=ATKSLOT.has(slot)?(r.dy.res?'defRes':'extPen'):'skill';   // 攻击部位定音标签常读歪，默认外功穿透；防具 = 武学技能增伤
-    if(t!=='none'&&[...$('e_dt').options].some(o=>o.value===t)){$('e_dt').value=t;$('e_dv').value=r.dy.v}}
+  /* v261（11-17 你指出：直接读「[转]」就好，别让它算序号）：取带 zl:true 的那一条在 affixes 里的位置 —— 0 是胚（胚不可能是转律位，当读错），1~4 就是律1~律4。
+     顶层的 zl 数字只作旧写法的退路。 */
+  let zl=(r.affixes||[]).findIndex(a=>a&&(a.zl===true||a.zl==='true'||/\[\s*转\s*\]/.test(String(a.txt||''))));
+  if(zl<=0)zl=(+r.zl>=0&&+r.zl<=4)?+r.zl|0:-1;
+  if(zl>=0)$('e_zl').value=String(zl);
+  /* 定音（v260，11-17 你定：截图也读定音）：攻击部位看名字是外功穿透 / 外功抗性 / 无相穿透；
+     防具看名字里是哪一门武学（主武器那门 → skill，副武器那门 → skill2；认不出先算主武器并提示）。
+     本地识别（公开版）只读得到数值和「抗性」两个字，照旧。 */
+  let dyNote='';
+  if(r.dy&&+r.dy.v){const nm=String(r.dy.txt||''),s0=sc(),sid=Object.keys(SCH).find(k=>SCH[k]===s0),arts=WXSCH[sid]||[];
+    let t,unk=false;   // unk：true = 认不出哪门武学；2 = 武学认出来了但名字表里没有这一条
+    if(ATKSLOT.has(slot))t=(r.dy.res||/抗性|resist/i.test(nm))?'defRes':/无相|formless|void/i.test(nm)?'wxPen':'extPen';
+    else{const a1=arts[0]&&nm.includes(arts[0]),a2=arts[1]&&nm.includes(arts[1]);t=a2&&!a1?'skill2':'skill';unk=!!nm&&!a1&&!a2}
+    if([...$('e_dt').options].some(o=>o.value===t)){$('e_dt').value=t;$('e_dv').value=Math.round(+r.dy.v*10)/10;
+      if($('e_dt').onchange)$('e_dt').onchange();
+      const hit=dySkills(t).find(n=>dyNorm(n)===dyNorm(nm));if(hit)$('e_dn').value=hit;else if(!ATKSLOT.has(slot)&&nm&&!unk)unk=2;
+      if(nm)dyNote=`<br><span class="hint">定音「${esc(nm)}」${Math.round(+r.dy.v*10)/10} → ${esc(String(dyOpts(slot)[t]).split(' ')[0])}${unk===2?'（这个名字不在名字表里，没选具体技能，请核对）':unk?'（名字里没认出是这个流派的哪门武学，先算主武器，请核对）':''}</span>`}}
   // 阶位：截图里「承音」两个字和阶数最可靠；读不到才退回用数值反推
   const CYM={'96':'cy96','100':'cy','105':'cy105','110':'cy110','115':'cy115'};
   const tier=[96,100,105,110,115].includes(+r.tier)?String(+r.tier):null;
@@ -4577,11 +4656,16 @@ async function runOCR(blob,msg){
       peiNote=`<br><span class="hint">胚的名字没读出来，按${esc(slotName(slot))}的胚池和数值 ${got[0].v} 推成了「${esc(TN(cands[0]))}」，请核对</span>`}
     else if(cands.length>1)peiNote=`<br><span class="hint">胚只读到数值 ${got[0].v}，名字没读出来；这个数值在${esc(slotName(slot))}可能是：${cands.map(t=>'「'+esc(TN(t))+'」').join(' / ')}，请自己选</span>`}
   const miss=got.map((a,i)=>({a,i})).filter(x=>x.a.t==='none'&&x.a.v>0);   // 只读到数值、名字读不出来的
+  /* v260：数值不在这条词条的范围里（原装满值的 45% ~ 这一阶的上限）→ 名字多半读错了，标红 */
+  const off=st?got.map((a,i)=>({a,i,hi:capOf(a.t,st),lo:fullOf(a.t,st)*0.45})).filter(x=>x.a.t!=='none'&&x.a.v>0&&x.hi>0&&(x.a.v>x.hi*1.03||x.a.v<x.lo)):[];
   msg.innerHTML=`<b style="color:var(--good)">读好了，<u>请逐条核对再保存</u></b>`+slotNote
     +(st?`<span class="hint"> · 阶位${esc(how)}定为「${esc(ST[st].split('（')[0])}」</span>`:`<span class="hint"> · 阶位推不出来，自己选</span>`)
     +(peiBad?`<br><b style="color:var(--bad)">胚读成了「${esc(TN(got[0].t))}」，但${esc(slotName(slot))}的胚池里没有这个 —— 多半读错了</b>`:'')
     +peiNote
     +(r.fixed&&r.fixed.length?`<br><span class="hint">${r.fixed.map(i=>i?'律'+i:'胚').join('、')} 的名字是单独放大那一行补读出来的，请核对</span>`:'')
+    +dyNote
+    +(byTxt.length?`<br><span class="hint">${byTxt.map(x=>(x.i?'律'+x.i:'胚')+' 按截图上的字「'+esc(x.txt)+'」定为 '+esc(TN(x.now))).join('；')}（读图时先归成了别的，已改，请核对）</span>`:'')
+    +(off.length?`<br><b style="color:var(--bad)">${off.map(x=>(x.i?'律'+x.i:'胚')+'「'+esc(TN(x.a.t))+'」读到 '+x.a.v+'，不在这条的范围里（'+fmt(x.lo,1)+'~'+fmt(x.hi,1)+'）').join('；')} —— 名字多半读错了，请对着截图改</b>`:'')
     +(miss.length?`<br><b style="color:var(--bad)">${miss.map(x=>(x.i?'律'+x.i:'胚')+' 只读到数值 '+x.a.v).join('；')} —— 名字没读出来（劲 / 敏 / 势 这种单字最容易读不出），请自己选</b>`:'')}
 /* v230（审查 #1）：读不到就停住，顶部红字，读成功前不画、不存 */
 function libFail(msg,canRestore){libOK=false;blockMsg=msg;document.body.classList.add('libBlocked');
@@ -4955,7 +5039,7 @@ $('qcList').addEventListener('click',e=>{const b=e.target.closest('[data-qc]');i
   D.opt.qcLo=b.dataset.qc;drawQC();save()});
 $('qc2').onchange=e=>{D.opt.qc2=e.target.value;D.opt.qcLo=null;if(!D.opt.qcOpen)D.opt.qcOpen=true;drawQC();save()};
 $('rateTog').onclick=()=>{D.opt.rateLean=!D.opt.rateLean;drawRates();save()};
-$('distTog').onclick=()=>{D.opt.distOpen=D.opt.distOpen===false;drawDist();save()};
+
 $('wasteTog').onclick=()=>{D.opt.wasteOpen=D.opt.wasteOpen===false;drawWaste();save()};
 $('addNew').onclick=()=>openEd('');
 $('attrOut').onclick=attrOut;$('attrCopy').onclick=attrCopy;
@@ -5031,6 +5115,6 @@ connect();
 <footer style="max-width:1100px;margin:28px auto 18px;padding:0 16px;font-size:12px;color:var(--muted);line-height:1.7">
   非官方玩家自制工具，与《燕云十六声》官方无关；游戏名称、图标及相关商标归其权利人所有。<br>
   数据只存在你自己的浏览器里，不会上传到任何地方；换设备或清缓存前请先点页面顶部的「导出备份」（超过 7 天没备份会提醒）。<br>
-  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v258。
+  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v263。
 </footer>
 </html>
