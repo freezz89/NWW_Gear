@@ -499,6 +499,12 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
 <div class="card" id="mxBox" style="display:none"></div>
 
 <div class="sec">
+  <h2>满配实算<span class="sub">把一套满配铺成 8 件装备，算一次面板 · 内置小流派和你自己定的词条单都能算</span></h2>
+  <button id="smTog">展开</button>
+</div>
+<div class="card" id="smBox" style="display:none"></div>
+
+<div class="sec">
   <h2>自定义毕业词条单<span class="sub">自己加新流派 / 新小流派的满配条数 · 存进装备库，只存在这个浏览器里</span></h2>
   <button id="cvTog">展开</button>
 </div>
@@ -535,7 +541,7 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
 /* ===== 寒雨藏锋阁 · 代码分段（v234，审查 #21）=====
    数据（MAX/SOLO/WXR/XFT/SETLV/BOWLV/SCHOOLS…）→ 状态与存取 → 计算（我算的面板、毕业率）→ 判定（验货、转律、配额）→ 画面（render 各块）→ 导入 / 备份 / 事件
    每段开头有 「===== 段名 =====」 注释，搜它就能跳过去。 */
-const APPV='v263';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
+const APPV='v265';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
 const LOGE=(e,where)=>{try{console.warn('[寒雨藏锋阁 '+APPV+']',where||'',e&&e.message||e)}catch(x){LOGE(x)}};   // v234 #21：出错至少记一行
 const $=id=>document.getElementById(id);
 document.addEventListener('DOMContentLoaded',()=>{const e=$('appVer');if(e)e.textContent=APPV});{const e=document.getElementById('appVer');if(e)e.textContent=APPV}
@@ -1629,6 +1635,51 @@ const loChips=it=>loTags(it).map(n=>`<span class="chip lo">${esc(n)}</span>`).jo
 /* 满配长相：有 L 串就用 L 串；只有 want 表的（比如肉坦）就按需求表推一份出来。
    推导顺序：神力先归位（部位固定）→ 胚各挑自己池子里最缺的 → 剩下的律按「转律救不了」优先铺开 */
 const idealCache={};
+/* ===== v264（11-17 你定）：满配实算 =====
+   把一份满配（内置小流派的 L 串 / want 表，或你自己填的词条单）铺成 8 件「原装满值」或「全套承音满」
+   的装备，走一遍正常的 calcPanel，得到这套满配理论上能打出来的面板。
+   做法：临时存档 __sim + 临时装备 __s0..7，算完 try/finally 原样恢复，不 save()、不碰云端。
+   用独立的 key 是为了让 budCache / MEMO 的键不会和真数据撞上（撞上会把真结论污染掉）。 */
+const simClr=()=>{try{[denCache,xsCache,budCache,calcCache,MEMO].forEach(c=>{if(c)Object.keys(c).forEach(k=>{if(String(k).indexOf('__s')>=0)delete c[k]})})}catch(e){}};
+function fullSim(o){
+  const p=P(),sh=SCH[o.sid];if(!sh||!p)return null;
+  const oSch=p.school,oAct=p.active,hadLo=!!(p.lo&&p.lo.__sim),oLo=p.lo&&p.lo.__sim,n0=items.length;
+  let vi=o.vi|0,pushed=false;
+  try{
+    if(o.want){sh.vars.push({n:'__sim',cu:1,tier:100,set:'',bow:'',ok:[],xf:['','','',''],want:{...o.want}});
+      vi=sh.vars.length-1;pushed=true}
+    if(!sh.vars[vi])return null;
+    p.school=o.sid;p.lo=p.lo||{};
+    p.lo.__sim={vn:sh.vars[vi].n,v:vi,np:o.np||'pvp',
+      sets:{a:(o.sets&&o.sets.a)||'none',d:(o.sets&&o.sets.d)||'none',b:(o.sets&&o.sets.b)||'none'},
+      xf:(o.xf||['','','','']).slice(),wx:(o.wx||['','']).slice(),w13:[false,false],equip:{}};
+    p.active='__sim';
+    delete idealCache[sh.id+'|'+vi+'|'+(o.np||'pvp')];
+    simClr();                       // calcPanel 的缓存键是 pid|存档|武库|VEQ，两次模拟键一样会直接返回上一次的 → 先清掉
+    const tier=String(lvData().tier||100);
+    const st=o.cy?(tier==='100'?'cy':'cy'+tier):tier;          // 承音满 = 该阶满值 × 0.94
+    const ideal=idealOf(vi),cnt={};
+    SLOTS.forEach((k,si)=>{
+      const af=(ideal[k]||[]).map(t=>(!t||t==='none')?{t:'none',v:0}:{t:t,v:+(+capOf(t,st)).toFixed(3)});
+      while(af.length<5)af.push({t:'none',v:0});
+      af.forEach(a=>{if(a.t&&a.t!=='none')cnt[a.t]=(cnt[a.t]||0)+1});
+      const dt=ATKSLOT.has(k)?'extPen':'skill';
+      items.push({id:'__s'+si,pid:p.id||'main',slot:k,st:st,seq:1,name:'满配',affixes:af,base:{},
+        dy:{t:dt,v:+(+capOf(dt,st)).toFixed(2)},fv:2,zl:0,zlk:1});
+      p.lo.__sim.equip[k]='__s'+si});
+    const R0=calcPanel().R,R={};R0.forEach(x=>R[x.k]=+x.val);
+    const W=panelW(R0),d=divOf();
+    return {R,W,d,pr:procOf(W,d),t:tg()||{},cnt,st,ideal,
+      n:Object.values(cnt).reduce((a,x)=>a+x,0),
+      Y:{acc:Math.min(RCAP.acc,toY('acc',W.accW,d)),crit:Math.min(RCAP.crit,toY('crit',W.critW,d)),
+         intent:Math.min(RCAP.intent,toY('intent',W.intentW,d))}};
+  }catch(e){LOGE(e);return null}
+  finally{
+    items.length=n0;if(pushed)sh.vars.pop();
+    p.school=oSch;p.active=oAct;
+    if(hadLo)p.lo.__sim=oLo;else if(p.lo)delete p.lo.__sim;
+    try{simClr();Object.keys(idealCache).forEach(k=>{if(k.indexOf('|'+vi+'|')>=0)delete idealCache[k]})}catch(e){}
+  }}
 function idealOf(vi){
   const v=sc().vars[Math.min(vi,sc().vars.length-1)];
   if(!v.want)return layoutOf(vi);
@@ -1729,11 +1780,15 @@ function setBudget(vi,sub,lk){
      目标那条还没填满时，替补就占目标的配额。只在「满配要目标、又不要替补」的套里生效：
      会心外攻那种满配同时要大外和劲的，一条都不会变（48 件回归逐条验过）。
      劲→最小外功那对（伤害权重，subRate）不在这里，验货照旧不认 —— 11-17 你定「验货不要动」。 */
-  const SUBBACK={};Object.entries(SUBOF).forEach(([c,st])=>{if(SUBFIX[c]&&Wc[c]&&!Wc[st])SUBBACK[st]=c});
+  /* v265（11-18）：先把真词条全分完，再让替补补空位 —— 以前替补在已承音的件上会排到前面，
+     先占掉名额，后面的真气血反而被标成废词条（7.5 v263②：目标「还没填满时」替补才占）。 */
+  const SUBBACK=subBack(Wc),later=[];
   ord.forEach(x=>{
     if((Wc[x.t]||0)>(have[x.t]||0)){have[x.t]=(have[x.t]||0)+1;return}
-    const bk=SUBBACK[x.t];
-    if(bk&&(Wc[bk]||0)>(have[bk]||0)){have[bk]=(have[bk]||0)+1;x.sub=bk;return}
+    if(SUBBACK[x.t]){later.push(x);return}
+    waste.push(x)});
+  later.forEach(x=>{const bk=SUBBACK[x.t];
+    if((Wc[bk]||0)>(have[bk]||0)){have[bk]=(have[bk]||0)+1;x.sub=bk;return}
     waste.push(x)});
   /* 每条废词条为什么废，一句话 —— 装备卡的提示、废词条面板都读这一句 */
   const Dd=deadTypes(),OK=okTypes(vi);
@@ -1766,7 +1821,7 @@ function capTight(vi){const Wc=wantC(vi),out={};
     if(all>0&&all<=Wc[t])out[t]={want:Wc[t],all}});
   return out}
 function capCheck(it,vi){
-  const Wc=wantC(vi),L=LO(),out=[];
+  const Wc=wantC(vi),L=LO(),out=[],SB=subBack(Wc);      // v265：替补（体→气血…）占的律位也算这条的（和 setBudget 同一张表）
   Object.keys(Wc).forEach(t=>{
     if(isSp(t)||Wc[t]<=0)return;
     let reach=0,blk=false;
@@ -1778,7 +1833,7 @@ function capCheck(it,vi){
       const pei=c.pei&&af[0]&&cT(af[0].t)===t?1:0;
       let lv=0;
       if(c.lv){
-        if([1,2,3,4].some(i=>af[i]&&cT(af[i].t)===t))lv=1;
+        if([1,2,3,4].some(i=>af[i]&&(cT(af[i].t)===t||SB[cT(af[i].t)]===t)))lv=1;
         else if(!LOCKED(x.st)&&poolHas(k,t))lv=1;            // 没承音、转律池里有 → 算能转上去（乐观）
       }
       reach+=pei+lv;
@@ -1891,7 +1946,7 @@ function verdictOf0(it){
   if(q.pass){
     /* v195：词条都要 ≠ 完美件。只有和满配长相一样（上面 im.exact）才叫完美件；
        否则说清楚和满配差在哪（例：势会心大外 陌刀 律1 会心，满配那格要势，转律位锁在律3 补不上） */
-    if(!q.bad.length){const d=im&&im.extra&&im.extra.length?im.extra.map(i=>'律'+i+' '+TN((it.affixes[i]||{}).t)).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、'):'';return {k:'keep2',n:'合格件',why:'词条都要，但和满配长相不一样'+(d?'（'+d+'），'+(im.bal?'全套条数刚好，不用转':'转律位补不上'):'')}}
+    if(!q.bad.length){const d=im&&im.extra&&im.extra.length?im.extra.map(i=>'律'+i+' '+TN((it.affixes[i]||{}).t)).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、'):'';return {k:'keep2',n:'合格件',why:'词条都要，但和满配长相不一样'+(d?'（'+d+'），'+(im.bal?'全套条数刚好，不用转':lk?'承音锁死':'转律位补不上'):'')}}
     if(lk)return {k:'keep2',n:'合格件',why:`承音后转律已锁，${stuckText()}`};
     if(movable)return {k:'wait',n:'合格件',why:act()};
     return {k:'keep2',n:'合格件',why:`转律位已用在律${q.I.zl}（那条本来就对），${stuckText()}`};
@@ -2771,10 +2826,9 @@ function procOf(W,d){
    v238 的伤害模型（期望伤害 ÷ 理想面板）把多出来的会心算得比劲还值钱：缺 6 条劲也算出 96.4%，作废（总档 13.5）。
    输出套：毕业率 = 满配 40 格，每格取你身上同类词条里最好的「数值 ÷ 原装满值」（封顶 1；同类按验货的认法，首领 = 玩家、无相 = 本系属攻），
      多出来的、满配不要的都不算；加总 ÷ 40。原装满值按角色单人等级的装备阶（总档 3.1）。全套承音满 = 94%。
-   坦克套（体/御/外防都记成气血的套）：坦度毕业率 = 前 N 条坦词条 min(数值 ÷ 原装满值, 1) 之和 ÷ N（审查 #24），算法同上，只看坦词条。
-   三条线：输出 75 / 85 / 95，坦度 70 / 80 / 90（待你定）。 */
-const GRAD_LINES=[[75,'及格'],[85,'毕业'],[94,'机甲']]   /* v262（11-17 你定 A）：全套承音满最高就是 94%，95 的线永远够不到 */, TANK_LINES=[[70,'及格'],[80,'毕业'],[90,'机甲']];
-const tankCap=(t,st)=>capOf(t,st);
+   v265（11-18）：坦克套那条单独的算法删了 —— v263 拆掉肉坦的折算后它已经走不到；肉坦和输出套同一算法、同三条线。
+   三条线：75 / 85 / 94（全套承音满 = 胚和律都是原装满值 × 0.94，11-18 你确认胚也一样）。 */
+const GRAD_LINES=[[75,'及格'],[85,'毕业'],[94,'机甲']]   /* v262（11-17 你定 A）：全套承音满最高就是 94%，95 的线永远够不到 */;
 /* v262（11-17 你定）：最小外功当劲的替补，**只用在毕业率**，验货/转律建议一点不动（你说先别动）。
    系数 = 1 条满值最小外功 ÷ 1 条满值劲 的伤害权重比，按这套**目标三率**推（不按身上的，所以不会随装备浮动）：
      目标黄字 → 生效概率（和 procOf 同一套触发顺序）→ 最大 / 最小外功各自的权重（伤害公式见总档 13.1）
@@ -2789,8 +2843,19 @@ const SUBOF={jin:'minA',hp:'ti',def:'yu',maxA:'jin'};
    jin → minA 不在这里：那对是伤害权重比，按目标三率现算（subRate）。*/
 const SUBFIX={hp:1,def:1,maxA:0.86};
 const subK=c=>c==='jin'?subRate():(SUBFIX[c]||0);
+/* 验货用的替补表（只认 SUBFIX 那三对）：替补 → 它顶的目标。只在「满配要目标、又不要替补」的套里有 */
+const subBack=Wc=>{const r={};Object.entries(SUBOF).forEach(([c,st])=>{if(SUBFIX[c]&&Wc[c]&&!Wc[st])r[st]=c});return r};
+/* v265（11-18 你定）：小外顶劲只给会心大外流（分类和词条配置矩阵同一条规则：会意条数 > 会心 = 会意流；最大外功 ≥ 最小外功 = 大外）。
+   这套缺精准或会意目标时不启用 —— 以前缺的当 0：飞天玉没会意目标，k 被顶到 1.00；牵丝霖没精准目标，k = 0。 */
+const subCat=()=>{const W=wantC(curVarSafe());return ((W.intent||0)>(W.crit||0)?'会意':'会心')+((W.maxA||0)>=(W.minA||0)?'大外':'小外')};
+const hasT=x=>x!=null&&x!==''&&isFinite(+x);
+function subWhy(){const t=tg()||{};
+  if(subCat()!=='会心大外')return '这套不是会心大外流';
+  const m=[['acc','精准'],['intent','会意']].filter(([k])=>!hasT(t[k])).map(([,n])=>n);
+  return m.length?'这套没定'+m.join('、')+'目标':''}
 function subRate(){
   const t=tg();if(!t)return 0;
+  if(subWhy())return 0;
   const a=Math.min(1,(+t.acc||0)/100),i=Math.min(1,(+t.intent||0)/100);
   let zj=0;try{zj=(panelW(calcPanel().R).zjCrit||0)/100}catch(e){}
   const c=Math.min(1,(+t.crit||0)/100+zj);
@@ -2813,37 +2878,26 @@ function gradRing(pct,label,col,lines){const R=34,C=2*Math.PI*R,f=pct==null?0:Ma
     <text x="44" y="46" text-anchor="middle" font-size="17" font-weight="700" fill="var(--fg)" style="font-family:var(--f-num)">${pct==null?'—':fmt(pct,1)+'%'}</text>
     <text x="44" y="61" text-anchor="middle" font-size="9.5" fill="var(--muted)">${esc(label)}</text></svg>`}
 function gradCalc(){
-  const L=LO(),WM=wasteMap(),out={},st=String(lvData().tier);
-  const tank=cT('ti')==='hp'&&cT('def')==='hp';out.tank=tank;
-  if(tank){const N=WM.want.hp||0,rolls=[],cnt={ti:0,hp:0,yu:0,def:0};
-    SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);if(!it)return;
-      it.affixes.forEach(a=>{const cap=tankCap(a.t,st);if(a.t&&a.t!=='none'&&cT(a.t)==='hp'&&cap){rolls.push(Math.min(1,(+a.v||0)/cap));if(cnt[a.t]!=null)cnt[a.t]++}})});
-    rolls.sort((a,b)=>b-a);const top=rolls.slice(0,N),sum=top.reduce((a,x)=>a+x,0);
-    Object.assign(out,{N,have:rolls.length,pct:N?sum/N*100:null,cnt,avg:top.length?sum/top.length*100:null,lines:TANK_LINES,st});return out}
-  /* A：词条毕业率 */
+  const L=LO(),out={},st=String(lvData().tier);
+  /* A：词条毕业率（v265：肉坦也走这条，坦克套那条删了） */
   const want={};Object.entries(wantOf(curVarSafe())).forEach(([t,n])=>{if(!n||t==='none')return;const c=cT(t);want[c]=(want[c]||0)+n});
   const have={};let nEq=0;
   SLOTS.forEach(k=>{const it=byId((L.equip||{})[k]);if(!it)return;nEq++;
     it.affixes.forEach(a=>{if(!a.t||a.t==='none')return;const c=cT(a.t),full=fullOf(a.t,st);if(!full)return;(have[c]=have[c]||[]).push(Math.min(1,(+a.v||0)/full))})});
-  const rows=Object.entries(want).map(([c,n])=>{const arr=(have[c]||[]).slice().sort((a,b)=>b-a),got0=arr.slice(0,n).reduce((a,x)=>a+x,0);
-    /* v262 起：满配要的这条不够时，拿满配「不要」的替补按系数顶上（SUBOF / subK）。满配本来就要替补那条的流派不顶。*/
-    let sub=0,subN=0,subT=SUBOF[c],k=0;
-    if(subT&&!want[subT]&&arr.length<n){k=subK(c);
-      if(k>0){const ex=(have[subT]||[]).slice().sort((a,b)=>b-a).slice(0,n-arr.length);
-        subN=ex.length;sub=ex.reduce((a,x)=>a+x*k,0)}}
-    return {c,n,has:arr.length,subN,k,subT:subN?subT:null,got:got0+sub,gap:n-got0-sub}}).sort((a,b)=>b.gap-a.gap);
+  const rows=Object.entries(want).map(([c,n])=>{const arr=(have[c]||[]).slice().sort((a,b)=>b-a);
+    /* v262 起：满配要的这条不够时，拿满配「不要」的替补按系数顶上（SUBOF / subK）。满配本来就要替补那条的流派不顶。
+       v265（11-18）：按「值」取最好的 n 格 —— 真词条和 替补×系数 放在一起挑（一样大时真词条优先），
+       不再是「真词条条数够了替补就不进来」：两条半值气血 + 一条满值体，体会顶掉一条半值的。*/
+    const subT=SUBOF[c];let k=0;const pool=arr.map(x=>({x,s:0}));
+    if(subT&&!want[subT]){k=subK(c);if(k>0)(have[subT]||[]).forEach(x=>pool.push({x:x*k,s:1}))}
+    pool.sort((a,b)=>b.x-a.x||a.s-b.s);const top=pool.slice(0,n);
+    const got=top.reduce((a,o)=>a+o.x,0),subN=top.filter(o=>o.s).length;
+    return {c,n,has:arr.length,subN,k,subT:subN?subT:null,got,gap:n-got}}).sort((a,b)=>b.gap-a.gap);
   const N=rows.reduce((a,r)=>a+r.n,0),sum=rows.reduce((a,r)=>a+r.got,0);
   Object.assign(out,{rows,N,sum,nEq,st,lines:GRAD_LINES,pct:N&&nEq?sum/N*100:null,pctCy:CY*100});
   return out}
 function gradBox(){let G;try{G=gradCalc()}catch(e){LOGE(e,'毕业率');return ''}
   const col=gradCol(G.pct,G.lines),band=gradBand(G.pct,G.lines),lineTxt=G.lines.map(([x,n])=>n+' '+x).join(' / ');
-  if(G.tank){const NM={ti:'体',hp:'气血',yu:'御',def:'外防'};
-    return `<div class="gwrap"><div class="gring">${gradRing(G.pct,'坦度毕业率',col,G.lines)}<div class="gl">
-      <span><span class="gk">现在</span> <b>${band||'—'}</b> <span class="hint">（${lineTxt}）</span></span>
-      <span><span class="gk">理想</span> 坦词条 <b>${G.N}</b> 条全是原装满值</span>
-      <span><span class="gk">现在</span> <b>${G.have}</b> 条（${Object.entries(G.cnt).filter(([,n])=>n).map(([k,n])=>NM[k]+' '+n).join(' · ')||'—'}）</span>
-      <span><span class="gk">平均成色</span> <b>${G.avg!=null?fmt(G.avg,1)+'%':'—'}</b></span></div></div>
-      <span class="hint">坦度毕业率 = 最好的 ${G.N} 条坦词条（体/气血/御/外防）各自 数值 ÷ ${G.st} 阶原装满值（气血 ${tankCap('hp',G.st)}、外防 ${tankCap('def',G.st)}），加总 ÷ ${G.N}；缺的条算 0 · 全套承音满最高 94%</span></div>`}
   const g1=x=>fmt(x,1),lean=D.opt.rateLean!==false;      /* v262（11-17 你定）：默认精简；「显示说明」才出格数、差最多、怎么算的 */
   const short=G.rows.filter(r=>r.gap>0.05).slice(0,3).map(r=>`${esc(TN(r.c))} 差 <b>${g1(r.gap)}</b> 格`).join(' · ');
   const side=`<span><span class="gk">现在</span> <b>${band||'—'}</b> <span class="hint">（${lineTxt}）</span></span>
@@ -2851,7 +2905,7 @@ function gradBox(){let G;try{G=gradCalc()}catch(e){LOGE(e,'毕业率');return ''
     ${short?`<span><span class="gk">差最多</span> ${short}</span>`:''}`}
     <span><span class="gk">全套承音满</span> <b>${fmt(G.pctCy,0)}%</b> <span class="hint">＝机甲线</span></span>`;
   const how=G.pct==null?`<span class="hint">这套还没穿装备</span>`:lean?''
-    :`<details class="hint"><summary>怎么算的</summary>满配「${esc(curV().n)}」${G.N} 格，每格取你身上同类词条里最好的「数值 ÷ ${G.st} 阶原装满值」（封顶 1；多出来的、满配不要的不算），加总 ÷ ${G.N}。${G.rows.filter(r=>r.subT).map(r=>`<br>${esc(TN(r.c))} 不够时，${esc(TN(r.subT))} 按 <b>×${fmt(r.k,2)}</b> 当替补顶上（只影响毕业率，不影响验货）。`).join('')}<br>
+    :`<details class="hint"><summary>怎么算的</summary>满配「${esc(curV().n)}」${G.N} 格，每格取你身上同类词条里最好的「数值 ÷ ${G.st} 阶原装满值」（封顶 1；多出来的、满配不要的不算），加总 ÷ ${G.N}。${G.rows.filter(r=>r.subT).map(r=>`<br>${esc(TN(r.c))} 不够时，${esc(TN(r.subT))} 按 <b>×${fmt(r.k,2)}</b> 当替补顶上（只影响毕业率，不影响验货）。`).join('')}${(()=>{const W=wantC(curVarSafe());if(!(W.jin>0)||W.minA)return '';const w=subWhy();return w?`<br>最小外功不当劲的替补：${esc(w)}。`:''})()}<br>
       <table class="tbl" style="margin-top:4px"><thead><tr><th>词条</th><th>满配要</th><th>你身上</th><th>拿到</th></tr></thead><tbody>
       ${G.rows.map(r=>`<tr><td>${esc(TN(r.c))}${r.subN?` <span class="hint">+${r.subN} 条${esc(TN(r.subT))}替补</span>`:''}</td><td class="n">${r.n}</td><td class="n">${r.has}</td><td class="n">${g1(r.got)}${r.gap>0.05?` <span style="color:var(--bad)">−${g1(r.gap)}</span>`:''}</td></tr>`).join('')}
       </tbody></table>${g1(G.sum)} ÷ ${G.N} = <b>${g1(G.pct)}%</b></details>`;
@@ -2898,20 +2952,22 @@ function drawDist(){
   [...all].filter(t=>!['none','outer'].includes(t)).forEach(t=>rows.push({t,have:WM.have[t]||0,want:WM.want[t]||0}));
   rows.sort((a,b)=>(b.want-a.want)||(b.have-a.have));
   /* v262：最小外功当劲的替补（口径和毕业率同一个 subRate），只改这张表和毕业率，验货不动 */
-  const subU={},usedFor={};
+  const subU={},usedFor={},kFor={};
   /* 替补那条只要还能顶（满配要 c、不要 st、系数 >0），就在它自己那行写「替补」——
      哪怕 c 现在已经够了、一条都没用上，也要让你知道它不是废词条。（v263，11-17 你定）*/
   Object.entries(SUBOF).forEach(([c,st])=>{if(!(WM.want[c]>0)||WM.want[st]||!(subK(c)>0))return;
     subU[st]=0;const need=(WM.want[c]||0)-(WM.have[c]||0);
-    if(need>0&&(WM.have[st]||0)>0){const u=Math.min(WM.have[st],need);subU[st]=u;usedFor[c]=u}});
+    if(need>0&&(WM.have[st]||0)>0){const u=Math.min(WM.have[st],need);subU[st]=u;usedFor[c]=u;kFor[c]=subK(c)}});
+  /* v265（11-18）：替补按系数折（和毕业率同一个 k），不再 1 条顶 1 条 —— 以前 劲 4 + 小外 6 显示「刚好」，毕业率却说缺 */
+  const nn=v=>Math.abs(v-Math.round(v))<0.05?String(Math.round(v)):fmt(v,1);
   $('dist').innerHTML='<thead><tr><th>词条</th><th>现在</th><th>满配</th><th>差</th></tr></thead><tbody>'+
-    rows.map(x=>{const sN=usedFor[x.t]||0,d=x.have+sN-x.want;
-      const now=x.have+(sN?` <span class="chip cy">+${sN}替</span>`:'');
+    rows.map(x=>{const sN=usedFor[x.t]||0,kk=sN?(kFor[x.t]||1):1,d=x.have+sN*kk-x.want;
+      const now=x.have+(sN?` <span class="chip cy">+${sN}替${kk<0.995?'×'+fmt(kk,2):''}</span>`:'');
       const cell=subU[x.t]!=null?`<span class="chip cy">替补${subU[x.t]?' '+subU[x.t]:''}</span>`
         :!x.want?'<span class="chip">不要</span>'
-        :d===0?'<span class="chip ok">刚好</span>'
-        :d<0?`<span class="chip no">少 ${-d} 条</span>`
-        :`<span class="chip cy">多 ${d} 条</span>`;
+        :Math.abs(d)<0.05?'<span class="chip ok">刚好</span>'
+        :d<0?`<span class="chip no">少 ${nn(-d)} 条</span>`
+        :`<span class="chip cy">多 ${nn(d)} 条</span>`;
       return `<tr><td>${esc(TN(x.t))}</td><td class="num">${now}</td><td class="num">${x.want||'—'}</td><td>${cell}</td></tr>`}).join('')+'</tbody>';
   const v=curV();$('distSub').textContent=v.own?'· 按你自己定的条数':'';
 }
@@ -3159,6 +3215,82 @@ function cvParse(txt){const w={},bad=[];
     // 「陌刀增伤 / 八方枪增伤」第二武器不好猜，统一记第一武器；要分开就在下面的格子里改
     w[a[1]]=(w[a[1]]||0)+(+n);return m});
   return {w,bad}}
+/* ===== v264：满配实算面板 =====
+   选一套满配（内置小流派 / 已保存的自定义 / 下面正在编辑的），自己配心法 · 套装 · 弓 · 武学，
+   切「原装满值 ⇄ 全套承音满」，看这套理论上能打出来的面板，和毕业面板逐项比。 */
+const SMO=(k,cur,extra)=>Object.entries(SETS).filter(([id,v])=>v.k===k||id==='none')
+  .map(([id,v])=>`<option value="${esc(id)}"${id===cur?' selected':''}>${esc(v.n)}${v.d?' · '+esc(v.d):''}</option>`).join('')+(extra||'');
+function simDefaults(S,sh){
+  const v=S.vn==='__ed'?null:sh.vars[+S.vn];
+  S.xf=((v&&v.xf)||['','','','']).slice();
+  S.sets={a:(v&&SETKEY[v.set])||'none',d:(v&&SETKEY[v.setD])||'none',b:(v&&BOWKEY[v.bow])||'none'};
+  S.wx=(WXSCH[S.sid]||['','']).slice()}
+function drawSim(){
+  const open=!!D.opt.smOpen;
+  $('smTog').textContent=open?'收起':'展开';
+  $('smTog').className=open?'p':'';
+  $('smBox').style.display=open?'':'none';
+  if(!open){$('smBox').innerHTML='';return}
+  const S=D.opt.sim=D.opt.sim||{};
+  if(!S.sid||!SCH[S.sid])S.sid=refSc().id;
+  const sh=SCH[S.sid],ed=D.opt.cvEd;
+  const edOK=!!(ed&&ed.sid===S.sid&&ed.want&&Object.keys(ed.want).length);
+  const list=sh.vars.map((v,i)=>[String(i),v.n+(v.cu?'（自定义）':'')+(v.tier&&+v.tier!==100?' · '+v.tier+'阶':'')]);
+  if(edOK)list.push(['__ed','↓ 下面正在编辑的「'+(ed.n||'未命名')+'」']);
+  if(!list.some(x=>x[0]===String(S.vn)))S.vn=list.length?list[0][0]:'0';
+  const key=S.sid+'|'+S.vn;
+  if(S.key!==key){S.key=key;simDefaults(S,sh)}
+  const xfOpt='<option value="">（空）</option>'+XINFA.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+  const wxOpt='<option value="">（不选）</option>'+Object.keys(WXT).map(w=>`<option value="${esc(w)}">${esc(w)}</option>`).join('');
+  const o={sid:S.sid,cy:!!S.cy,xf:S.xf,sets:S.sets,wx:S.wx};
+  if(S.vn==='__ed')o.want={...ed.want};else o.vi=+S.vn;
+  const r=fullSim(o);
+  const num=(x,n)=>x==null?'—':fmt(x,n==null?0:n);
+  const row=(nm,val,tgt,nd,extra)=>{
+    const d=(tgt==null||val==null)?null:val-tgt;
+    return `<tr><td>${esc(nm)}</td><td class="num">${num(val,nd)}</td>
+      <td class="num">${tgt==null?'—':num(tgt,nd)}</td>
+      <td>${d==null?'':(d>=-0.049?`<span class="chip ok">${d<0.05?'刚好':'+'+fmt(d,nd||0)}</span>`:`<span class="chip no">${fmt(d,nd||0)}</span>`)}</td>
+      <td class="hint">${extra||''}</td></tr>`};
+  let body='<p class="hint">算不出来（这套满配可能是空的）</p>';
+  if(r){const t=r.t,W=r.W,R=r.R,pr=r.pr;
+    const rate=(k,nm)=>{const y=r.Y[k],tt=t[k];
+      return row(nm+' 黄字',y,tt==null?null:tt,1,
+        `白字 ${fmt(W[k+'W'],1)}%${y>=RCAP[k]-0.05?' · <b style="color:var(--bad)">撞 '+RCAP[k]+'% 上限</b>':''}`)};
+    const nTot=r.n;
+    body=`<div style="overflow-x:auto"><table class="tbl">
+      <thead><tr><th>项</th><th>这套满配</th><th>毕业面板</th><th>差</th><th></th></tr></thead><tbody>
+      ${rate('acc','精准率')}${rate('crit','会心率')}${rate('intent','会意率')}
+      ${row('最终会心会意率',pr?(pr.crit+pr.intent)*100:null,null,2,'会心 '+fmt(pr?pr.crit*100:0,2)+' · 会意 '+fmt(pr?pr.intent*100:0,2))}
+      ${row('最小外功',R.minA,t.minA==null?null:t.minA,0,'')}
+      ${row('最大外功',R.maxA,t.maxA==null?null:t.maxA,0,'')}
+      ${row('最大本系',R.selfMax,t.self==null?null:t.self,0,'最小本系 '+fmt(R.selfMin,0))}
+      ${row('气血',R.hp,null,0,'外功防御 '+fmt(R.def,1))}
+      </tbody></table></div>
+      <p class="hint" style="margin:8px 0 0">
+        按 <b>${esc(r.st.indexOf('cy')===0?'全套承音满（该阶满值 × 0.94）':'原装满值')}</b> 铺的 40 格；
+        合计 <b${nTot===40?'':' style="color:var(--bad)"'}>${nTot}</b> 条${nTot===40?'':'（不是 40，下面的数只能当参考）'}。
+        基本盘用这个角色的设置：${esc(lvData().n)} · 武库 ${esc((P().calc&&P().calc.wk&&P().calc.wk.mode)||'auto')} · 叠音、蹊跷照「数据」页。
+        心法 / 套装 / 弓 / 武学用上面选的，不跟任何存档走。</p>`}
+  $('smBox').innerHTML=`
+    <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+      <label class="f">流派<select id="smSch">${SCHOOLS.map(x=>`<option value="${esc(x.id)}"${x.id===S.sid?' selected':''}>${esc(x.n)}</option>`).join('')}</select></label>
+      <label class="f">满配<select id="smVar">${list.map(([v,n])=>`<option value="${esc(v)}"${String(S.vn)===v?' selected':''}>${esc(n)}</option>`).join('')}</select></label>
+      <button class="mini${S.cy?'':' p'}" id="smRaw">原装满值</button><button class="mini${S.cy?' p':''}" id="smCy">全套承音满</button>
+      <button class="mini" id="smReset">恢复这套的默认</button>
+    </div>
+    <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <span class="hint">心法</span>${[0,1,2,3].map(i=>`<select data-smxf="${i}">${xfOpt}</select>`).join('')}
+    </div>
+    <div class="row" style="gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px">
+      <span class="hint">套装</span><select id="smSa">${SMO('atk',S.sets.a)}</select><select id="smSd">${SMO('def',S.sets.d)}</select>
+      <span class="hint">弓</span><select id="smSb">${SMO('bow',S.sets.b)}</select>
+      <span class="hint">武学</span>${[0,1].map(i=>`<select data-smwx="${i}">${wxOpt}</select>`).join('')}
+    </div>
+    <div style="margin-top:10px">${body}</div>`;
+  [0,1,2,3].forEach(i=>{const el=$('smBox').querySelector(`[data-smxf="${i}"]`);if(el)el.value=S.xf[i]||''});
+  [0,1].forEach(i=>{const el=$('smBox').querySelector(`[data-smwx="${i}"]`);if(el)el.value=S.wx[i]||''});
+}
 function drawCustom(){
   if(D.opt.cvOpen===undefined)D.opt.cvOpen=false;
   $('cvTog').textContent=D.opt.cvOpen?'收起':'展开';
@@ -3329,6 +3461,24 @@ $('mxBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b
       const sig=r.s.id+'|'+r.tiers.join('·')+'|'+JSON.stringify(Object.keys(r.c).sort().map(k=>[k,r.c[k]]));
       if(seen[sig])r.keys.forEach(k=>h[k]=1);else seen[sig]=1});render()}});
 $('cvTog').onclick=()=>{D.opt.cvOpen=!D.opt.cvOpen;drawCustom();save()};
+$('smTog').onclick=()=>{D.opt.smOpen=!D.opt.smOpen;drawSim();save()};
+$('smBox').addEventListener('change',e=>{const S=D.opt.sim=D.opt.sim||{},el=e.target;
+  if(el.id==='smSch'){S.sid=el.value;S.vn='0';S.key=null}
+  else if(el.id==='smVar'){S.vn=el.value;S.key=null}
+  else if(el.id==='smSa'){S.sets={...S.sets,a:el.value}}
+  else if(el.id==='smSd'){S.sets={...S.sets,d:el.value}}
+  else if(el.id==='smSb'){S.sets={...S.sets,b:el.value}}
+  else if(el.dataset.smxf!=null){S.xf=(S.xf||['','','','']).slice();S.xf[+el.dataset.smxf]=el.value}
+  else if(el.dataset.smwx!=null){S.wx=(S.wx||['','']).slice();S.wx[+el.dataset.smwx]=el.value}
+  else return;
+  drawSim();save()});
+$('smBox').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const S=D.opt.sim=D.opt.sim||{};
+  if(b.id==='smRaw')S.cy=false;
+  else if(b.id==='smCy')S.cy=true;
+  else if(b.id==='smReset'){const sh=SCH[S.sid];if(sh)simDefaults(S,sh)}
+  else return;
+  drawSim();save()});
 $('cvBox').addEventListener('change',e=>{const ed=D.opt.cvEd;if(!ed)return;
   if(e.target.id==='cvSch')ed.sid=e.target.value;
   else if(e.target.id==='cvName')ed.n=e.target.value.trim();
@@ -3444,7 +3594,7 @@ function render(){if(!libOK)return;ensureProf();items.forEach(hydItem);drawSetup
 /* v242（审查 #15 ①）：只画当前那一页；别的页标「待画」，切过去时再画（showPage → drawPg）。
    以前四页每次全画，隐藏的也算。顺序照旧：配装页 drawSets → drawGrad → drawSlots → drawRates → drawDist → drawWaste。 */
 const PGDRAW={set:()=>{drawSets();drawGrad();drawSlots();drawRates();drawDist();drawWaste()},qc:()=>drawQC(),
-  data:()=>{drawBase();drawCustom();drawMx()},lib:()=>drawLib()};
+  data:()=>{drawBase();drawSim();drawCustom();drawMx()},lib:()=>drawLib()};
 const pgDirty=new Set();
 const clrPass=()=>[denCache,idealCache,xsCache,budCache,calcCache].forEach(c=>Object.keys(c).forEach(k=>delete c[k]));
 /* 存档的套装 / 心法默认值以前在 drawSets 里补；配装页不一定画了，这里先补上 */
@@ -5115,6 +5265,6 @@ connect();
 <footer style="max-width:1100px;margin:28px auto 18px;padding:0 16px;font-size:12px;color:var(--muted);line-height:1.7">
   非官方玩家自制工具，与《燕云十六声》官方无关；游戏名称、图标及相关商标归其权利人所有。<br>
   数据只存在你自己的浏览器里，不会上传到任何地方；换设备或清缓存前请先点页面顶部的「导出备份」（超过 7 天没备份会提醒）。<br>
-  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v263。
+  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v265。
 </footer>
 </html>
