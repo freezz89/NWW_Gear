@@ -117,6 +117,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .slot .tags{display:flex;gap:5px;flex-wrap:wrap}
 .tags .zlR{margin-left:auto}
 .slot .nm{font-weight:700;font-size:13.5px}
+#tabs .ord{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;font-size:11px;opacity:.85;cursor:pointer}#tabs .ord:hover{opacity:1;background:rgba(127,127,127,.25)}
 .item .hd{display:flex;align-items:center;gap:7px;min-width:0}
 .item .pos{font-family:var(--f-head);font-weight:700;font-size:15px;white-space:nowrap}
 .item .tags{display:flex;gap:5px;flex-wrap:wrap}
@@ -541,7 +542,7 @@ body.noRole .page[data-pg=set]>*:not(#profForm),body.noRole .page[data-pg=lib]>*
 /* ===== 寒雨藏锋阁 · 代码分段（v234，审查 #21）=====
    数据（MAX/SOLO/WXR/XFT/SETLV/BOWLV/SCHOOLS…）→ 状态与存取 → 计算（我算的面板、毕业率）→ 判定（验货、转律、配额）→ 画面（render 各块）→ 导入 / 备份 / 事件
    每段开头有 「===== 段名 =====」 注释，搜它就能跳过去。 */
-const APPV='v265';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
+const APPV='v267';                                   // 页面版本号：顶栏显示；备份进项目的源码文件名也带它
 const LOGE=(e,where)=>{try{console.warn('[寒雨藏锋阁 '+APPV+']',where||'',e&&e.message||e)}catch(x){LOGE(x)}};   // v234 #21：出错至少记一行
 const $=id=>document.getElementById(id);
 document.addEventListener('DOMContentLoaded',()=>{const e=$('appVer');if(e)e.textContent=APPV});{const e=document.getElementById('appVer');if(e)e.textContent=APPV}
@@ -1001,7 +1002,12 @@ function loList(){const p=P(),out=[],seen=new Set(),lo=p.lo||{};
     out.push([k,v?VLBL(v):L&&L.sch&&SCH[L.sch]?SCH[L.sch].n+'·'+GENN(L.vn):k]);seen.add(k)}});
   if(p.active&&!seen.has(p.active)){const v=sc0(p).vars.find(x=>x.n===p.active);if(v)out.push([v.n,VLBL(v)])}
   if(!out.length){const vs=sc0(p).vars,v=vs.find(x=>FLOWOF(x)!=='坦')||vs[0];if(v)out.push([v.n,VLBL(v)])}
+  /* v267（①）：你排的顺序（左右箭头调，存在 p.loOrd）；排第一的是优先套。没排过的接在后面，照原来的先后 */
+  const ord=Array.isArray(p.loOrd)?p.loOrd:null;
+  if(ord&&ord.length){const ix=k=>{const i=ord.indexOf(k);return i<0?1e6:i};out.forEach((x,i)=>x.__i=i);out.sort((a,b)=>ix(a[0])-ix(b[0])||a.__i-b.__i)}
   return out}
+function moveTab(d){const p=P(),ks=loList().map(x=>x[0]),i=ks.indexOf(p.active),j=i+d;if(i<0||j<0||j>=ks.length)return;
+  [ks[i],ks[j]]=[ks[j],ks[i]];p.loOrd=ks;save();render()}
 /* 11-15（你定）：还没选存档时不默认肉坦 —— 跳过坦克套，取第一个输出套 */
 function loDefault(list){const vs=sc0().vars,tank=n=>{const v=vs.find(x=>x.n===n);return v&&FLOWOF(v)==='坦'};
   return (list.find(x=>!tank(x[0]))||list[0])[0]}
@@ -1046,7 +1052,8 @@ function hydAf(a,k){const t0=a.t;delete a.t;
   Object.defineProperty(a,'t',{enumerable:true,configurable:true,get(){return this.k?relT(this,sc()):this._t},set(x){setRel(this,x,sc())}});return a}
 /* 显示名：带出实际的武器 / 系（别的武器的增伤、哪一系的属攻） */
 function afName(a){if(!a)return '';if(a.k==='wdmg')return (a.w||'?')+'武学增伤';
-  if(a.k==='atkMax'||a.k==='atkMin'){const mm=a.k==='atkMax'?'最大':'最小';return a.sy===sc().sys?mm+SYS[a.sy]:a.sy&&SYS[a.sy]?mm+SYS[a.sy]+'（别系）':'别系属攻（哪一系未知）'}
+  /* v267（⑬⑭）：词条是什么就写什么，不加「（别系）」；废不废由结论说。以前没记系的提示重选 */
+  if(a.k==='atkMax'||a.k==='atkMin'){const mm=a.k==='atkMax'?'最大':'最小';return SYS[a.sy]?mm+SYS[a.sy]:mm+'属攻（没记是哪一系，请在编辑里重选）'}
   return TN(a.t)}
 /* v240：数据库交回来的资料是只读的（冻结对象），不能往上加 _t、__h 这些内部标记 —— 先复制一份能改的。
    v234~v239 刷新后装备读不出来、再导入就重复建一批，就是这里报错（Cannot define property _t, object is not extensible） */
@@ -1240,7 +1247,7 @@ function gradeOf(it,vi){
   if(!q)return {star:0,why:'这个部位没有满配表'};
   const im=idealMatch(it,v);
   if(im&&im.exact)return {star:3,why:'和满配长相一样（稀少词条可以换位置）'};
-  if(im&&im.one)return {star:2.5,why:`律${im.one.pos} ${TN(im.one.from)} 转成 ${TN(im.one.to)}，就和满配长相一模一样`};
+  if(im&&im.one)return {star:2.5,why:`律${im.one.pos} ${afName(it.affixes[im.one.pos]||{})} 转成 ${TN(im.one.to)}，就和满配长相一模一样`};
   /* 胚不是这套要的：胚永远改不了，等于永久废掉 1 格。但后面 4 条还有用就不该直接判 0.5★
      （用户 2026-11-03）—— 按「胚 = 1 条永久卡住的废词条」往下算：后面 4 条越好，星级越高，最高 2★。 */
   const pei0=!q.peiOK&&!q.peiSoft;let noShen=false;
@@ -1260,8 +1267,8 @@ function gradeOf(it,vi){
   const I=q.I,n=I.bad.length,plain=h=>String(h).replace(/<[^>]+>/g,'');
   let st=n===0?3:q.canFix?(n===1?2.5:n===2?1.5:1):(n===1?2:1),why;
   if(n===0)why=q.peiSoft?'5 条都是这套要的，只是胚挑得不是最优':'5 条全是这套要的，零废词条';
-  if(n===0&&im&&!im.exact&&!q.peiSoft){st=2;why='5 条都是这套要的，但和满配长相不一样（'+im.extra.map(i=>'律'+i+' '+TN((it.affixes[i]||{}).t)).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、')+'），'+(im.bal?'全套条数刚好，不用转':'转律位补不上')}  // v195
-  else why=n+' 条废词条（'+I.bad.map(i=>TN(it.affixes[i].t)).join('、')+'）—— '+plain(rerollLine(it,I))
+  if(n===0&&im&&!im.exact&&!q.peiSoft){st=2;why='5 条都是这套要的，但和满配长相不一样（'+im.extra.map(i=>'律'+i+' '+afName(it.affixes[i]||{})).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、')+'），'+(im.bal?'全套条数刚好，不用转':'转律位补不上')}  // v195
+  else why=n+' 条废词条（'+I.bad.map(i=>afName(it.affixes[i])).join('、')+'）—— '+plain(rerollLine(it,I))
     +(q.canFix&&q.stuck>0?'；还剩 '+q.stuck+' 条永久卡住 —— 一件只能转一格':'');
   if(pei0){const st0=st;st=Math.max(0.5,Math.min(2,st-0.5));
     if(n===0&&q.hit.length<2)st=0.5;
@@ -1292,6 +1299,47 @@ function stars(g,lb){
    所以只有「同系」才能互比：牵丝玉↔牵丝霖↔牵丝翊、裂石威↔裂石钧。
    缓存本来就按流派 key，不用清。 */
 function asSchool(sid,fn){const old=SCHOV;SCHOV=sid;try{return fn()}finally{SCHOV=old}}
+/* ===== v267（11-20 拷问后定，总档 8.5 第 12 条）：备用件推给哪套 =====
+   ② 身上穿着的不往后挪；③ 页签从前往后逐套比，比这套这格现在穿的好就推给它、停；④ 好 = 先比星级（完美 > 完美[转] > 合格 > 过渡），同星再比成色；
+   ⑤ 被顶下来的那件接着往后比；⑥ 这套三率不到线时，能补三率又不让毕业率变低的件，这格已完美也推；⑦ 每个页签按它自己的流派验，没建页签的流派不比；
+   ⑧ 同一件可以同时挂几套；⑨ 防具已经挂在某个流派的页签上，就只推给同一个流派的页签（防具定音是给那个流派的武学的）。 */
+const ARMSLOT=new Set(['tou','xiong','tui','shou']);
+function asTab(lk,fn){const p=P(),a=p.active;if(lk===a)return fn();p.active=lk;try{return fn()}finally{p.active=a}}
+const wornTabs=id=>{const p=P();return loList().map(x=>x[0]).filter(k=>Object.values(((p.lo||{})[k]||{}).equip||{}).includes(id))};
+function tabRank(it,lk){return asTab(lk,()=>{if(!wpOK(it))return null;const vi=curVarSafe(),g=gradeOf(it,vi);return g?{star:g.star,q:qOf(it,vi),slot:it.slot}:null})}
+const beatsR=(a,b)=>!b||a.star>b.star||(a.star===b.star&&a.q>b.q+0.02);
+function ratesY(){const W=panelW(calcPanel().R),d=divOf();
+  return {acc:Math.min(RCAP.acc,toY('acc',W.accW,d)),crit:Math.min(RCAP.crit,toY('crit',W.critW,d)),intent:Math.min(RCAP.intent,toY('intent',W.intentW,d))}}
+function tabClr(lk){const pre=D.pid+'|'+lk+'|';Object.keys(calcCache).forEach(k=>{if(k.startsWith(pre))delete calcCache[k]});
+  [budCache,xsCache].forEach(c=>Object.keys(c).forEach(k=>{if(k.indexOf('|'+lk+'|')>=0)delete c[k]}));
+  for(const k of [...MEMO.keys()])if(k.indexOf('|'+lk+'|')>=0)MEMO.delete(k)}
+/* ⑥ 这套三率不到线：把这件换上去，短的那率升了、本来够的没跌破、毕业率没变低 → 推 */
+function rateNeed(lk,slot,cand){return asTab(lk,()=>{const t=tg()||{},R3=['acc','crit','intent'];
+  const Y0=ratesY(),short=R3.filter(r=>t[r]!=null&&Y0[r]<t[r]-0.05);if(!short.length)return null;
+  const L=LO();L.equip=L.equip||{};const old=L.equip[slot],g0=gradCalc().pct;
+  try{L.equip[slot]=cand.id;tabClr(lk);const Y1=ratesY(),g1=gradCalc().pct;
+    const up=short.filter(r=>Y1[r]>Y0[r]+0.01),down=R3.filter(r=>t[r]!=null&&Y0[r]>=t[r]-0.05&&Y1[r]<t[r]-0.05);
+    return up.length&&!down.length&&g1>=g0-0.05?{up,Y0,Y1,t}:null}
+  finally{if(old)L.equip[slot]=old;else delete L.equip[slot];tabClr(lk)}})}
+/* 从前往后逐套比；after = 从哪一套后面开始（顶下来的件用）；freeFrom = 当成已经不挂在这套 */
+function fitCascade(it,after,freeFrom){const p=P(),tabs=loList(),wt=wornTabs(it.id).filter(k=>k!==freeFrom);
+  const armS=ARMSLOT.has(it.slot)&&wt.length?new Set(wt.map(loSch)):null;
+  for(let i=after?tabs.findIndex(x=>x[0]===after)+1:0;i<tabs.length;i++){const [lk,ln]=tabs[i],L=(p.lo||{})[lk];if(!L||wt.includes(lk))continue;
+    if(armS&&!armS.has(loSch(lk)))continue;
+    const me=tabRank(it,lk);if(!me||me.star<2)continue;
+    const there=byId((L.equip||{})[me.slot]),tr=there&&there.id!==it.id?tabRank(there,lk):null;
+    if(beatsR(me,tr))return {lk,ln,slot:me.slot,star:me.star,q:me.q,there:tr?there:null,tr,why:'better'};
+    if(tr&&tr.star>=2.5){const rn=rateNeed(lk,me.slot,it);if(rn)return {lk,ln,slot:me.slot,star:me.star,q:me.q,there,tr,why:'rate',rn}}}
+  return null}
+const RN3={acc:'精准',crit:'会心',intent:'会意'};
+const rnTxt=rn=>rn.up.map(r=>RN3[r]+' '+fmt(rn.Y0[r],1)+'→'+fmt(rn.Y1[r],1)+'（线 '+rn.t[r]+'）').join('、');
+/* ⑩⑪ 防具的定音：记了是哪个武学的技能、这套的流派用不到，而且排在前面、也挂着它的页签没有要这个定音 → 提示重调 */
+function dyHint(it){if(!it||!ARMSLOT.has(it.slot)||!it.dy||!it.dy.n)return '';
+  const art0=String(it.dy.n).split('·')[0],art=DYCOMBO[art0]||art0,sid=Object.keys(SCH).find(k=>SCH[k]===sc()),mine=WXSCH[sid]||[];
+  if(mine.includes(art)||mine.includes(art0))return '';
+  const tabs=loList().map(x=>x[0]),me=tabs.indexOf(P().active);
+  if(wornTabs(it.id).some(k=>tabs.indexOf(k)<me&&(WXSCH[loSch(k)]||[]).some(a=>a===art||a===art0)))return '';
+  return `<div class="adv soft"><b>定音</b> 是 ${esc(art0)} 的（${esc(it.dy.n)}），这套用不到 —— 挂在这套要重调成 ${esc(mine.join(' / '))} 的定音</div>`}
 /* 这件能拿去同系哪些流派/小流派毕业？
    伞、扇这种通用武器很常见（牵丝玉和牵丝霖都用伞+扇），洗着洗着就洗出另一边的毕业件。 */
 /* 能不能拿这件去对照另一个流派？——【只比同系】
@@ -1353,11 +1401,12 @@ function wasteMap(){const vi=tgtVar(),w0=wantOf(vi),Dd=deadTypes(),OK=okTypes(vi
     it.affixes.forEach((a,i)=>{if(a.t&&a.t!=='none')inst.push({k,i,t:cT(a.t),v:+a.v||0,id:it.id})})});
   const by={};inst.forEach(x=>(by[x.t]=by[x.t]||[]).push(x));
   Object.entries(by).forEach(([t,arr])=>{
-    if(Dd.has(t)){arr.forEach(x=>res[x.k+':'+x.i]=TN(t)+'：这个流派用不到');return}
+    const xN=x=>{const it=byId(x.id),a=it&&it.affixes&&it.affixes[x.i];return a?afName(a):TN(t)};
+    if(Dd.has(t)){arr.forEach(x=>res[x.k+':'+x.i]=xN(x)+'：这个流派用不到');return}
     if(OK.has(t)&&!w[t])return;
     const need=w[t]||0,sur=arr.length-need;
     if(sur>0)arr.slice().sort((a,b)=>a.v-b.v||(a.i===0?1:-1)).slice(0,sur)
-      .forEach(x=>res[x.k+':'+x.i]=need?`${TN(t)}：满配只要${need}条，现在${arr.length}条`:`${TN(t)}：满配不需要`);
+      .forEach(x=>res[x.k+':'+x.i]=need?`${xN(x)}：满配只要${need}条，现在${arr.length}条`:`${xN(x)}：满配不需要`);
   });
   return {waste:res,want:w,have:Object.fromEntries(Object.entries(by).map(([t,a])=>[t,a.length]))}}
 
@@ -1476,7 +1525,7 @@ function growAdvice(it){
   const tot=it.affixes.filter(a=>a.t&&a.t!=='none').length;
   const far=g.filter(x=>x.c>0&&(x.c-x.v)/x.c>=GROW_WARN)
              .sort((a,b)=>(b.c-b.v)/b.c-(a.c-a.v)/a.c);
-  const li=x=>esc(TN(x.t))+' '+fmt(x.v,x.c>500?0:1)+'→'+fmt(x.c,x.c>500?0:1)
+  const li=x=>esc(afName(it.affixes[x.i]||{t:x.t}))+' '+fmt(x.v,x.c>500?0:1)+'→'+fmt(x.c,x.c>500?0:1)
     +'（差 '+Math.round((x.c-x.v)/x.c*100)+'%）';
   const full=x=>li(x);
   if(far.length)
@@ -1496,28 +1545,17 @@ function cyAdvice(k,it){
   if(pl&&g.star>=2.5)
     return `<div class="adv go"><b>可承音</b> → ${N}阶<span class="hint"> · 先转律再承音，承音后转不了</span> ${btn}</div>`;
   return `<div class="adv ${g.star>=3?'go':''}"><b>可承音</b> → ${N}阶<span class="hint"> · 成色 94%，数值不变</span> ${btn}</div>`}
-/* 这件在别的存档更合适？ */
-function bestLo(it,skipActive){const p=P(),act=p.active;let best=null;
-  loList().forEach(([lk,ln])=>{const L=(p.lo||{})[lk];if(!L)return;
-    if(skipActive&&lk===act)return;
-    const vi=loViL(L),f=gradeOf(it,vi);
-    if(f&&(!best||f.star>best.f.star))best={lk,ln,f,vi,L}});
-  return best}
-/* 换过去真的划算吗？要比那边现在穿的强，不然就是净降级 */
+/* 这件也能挂到别的页签吗？（v267：⑧ 同一件可以同时挂几套；按页签先后逐套比，每个页签按它自己的流派验） */
 function beatsWorn(it,r){const there=byId((r.L.equip||{})[it.slot]);
   if(!there||there.id===it.id)return {ok:!there,there:there||null,tf:null};
   const tf=gradeOf(there,r.vi);
   const q1=qOf(it,r.vi),q2=qOf(there,r.vi);
   return {ok:q1>q2+0.02||(Math.abs(q1-q2)<=0.02&&r.f.star>tf.star),there,tf}}
-function altLoAdvice(k,it){
-  const cur=gradeOf(it,curVarSafe()),b=bestLo(it,1);
-  if(!b||b.f.star<=cur.star||b.f.star<2.5)return '';
-  if(b.L.equip&&b.L.equip[k]===it.id)return '';   // 两边都挂着它，没什么可做的
-  const w=beatsWorn(it,b);
-  if(!w.ok)return '';          // 对面已经有更好的 —— 归属由「胚」那行讲，这里不重复
-  return `<div class="adv alt"><b>${esc(b.ln)}</b> 更用得上（${b.f.star}/3★ 对 ${cur.star}/3★）`
-    +(w.there?`，顶掉 ${esc(tagOf(w.there))}（${w.tf.star}/3★）`:`，那边空着`)
-    +` <button class="mini" data-mv="${it.id}|${b.lk}|${k}">也挂到${esc(b.ln)}</button></div>`}
+function altLoAdvice(k,it){const r=fitCascade(it);if(!r)return '';
+  return `<div class="adv alt"><b>${esc(r.ln)}</b> 也用得上（${r.star}/3★）`
+    +(r.why==='rate'?`，补三率：${rnTxt(r.rn)}`:'')
+    +(r.there?`，顶掉 ${esc(tagOf(r.there))}（${r.tr.star}/3★）`:`，那边空着`)
+    +` <button class="mini" data-mv="${it.id}|${r.lk}|${r.slot}">也挂到${esc(r.ln)}</button></div>`}
 /* 转律：一件只有一个位，转不出精准和神力，也转不走神力 */
 /* 把这条转走，三率会不会跌破毕业线？ */
 function rateBlock(it,i){
@@ -1589,10 +1627,10 @@ const tgtText=(to,n,tag)=>to.slice(0,n||3).map(([t,c])=>`<b>${esc(TN(t))}</b>（
 const rerollMovable=I=>I.state==='ok'||I.state==='nogap';
 /* 转走会让三率跌破毕业线 → 现在转不得（以前只有装备栏这么说，别的面板还在叫人转） */
 function blockText(it,I){const bk=I.block;
-  return `律${I.pos} ${esc(TN(I.from))} 是多的，但<b>现在转不得</b> —— 转走${esc(TN(bk.t))}会掉到黄字 ${fmt(bk.y,1)}，跌破毕业线 ${bk.tgt}`
+  return `律${I.pos} ${esc(afName(it.affixes[I.pos]||{}))} 是多的，但<b>现在转不得</b> —— 转走${esc(TN(bk.t))}会掉到黄字 ${fmt(bk.y,1)}，跌破毕业线 ${bk.tgt}`
     +`<span class="hint"> · 先补 ${fmt(bk.needW,1)} 白字${esc(TN(bk.t))}（约 ${fmt(bk.needW/bk.per,2)} 条，胚也算），再回来转</span>`}
 function rerollLine(it,I,tag){
-  const at=i=>`律${i} ${esc(TN(it.affixes[i].t))}`;
+  const at=i=>`律${i} ${esc(afName(it.affixes[i]))}`;
   switch(I.state){
     case 'perfect':return '五条全是这套要的，没有废词条';
     case 'locked':return `承音后转律已锁，${I.bad.length} 条废词条转不掉（还没毕业的话，先用着，之后再做更好的）`;
@@ -1792,9 +1830,10 @@ function setBudget(vi,sub,lk){
     waste.push(x)});
   /* 每条废词条为什么废，一句话 —— 装备卡的提示、废词条面板都读这一句 */
   const Dd=deadTypes(),OK=okTypes(vi);
-  waste.forEach(x=>{x.over=!!Wc[x.t]&&!(Dd.has(x.raw)||Dd.has(x.t));x.why=Dd.has(x.raw)||Dd.has(x.t)?TN(x.raw)+'：这个流派用不到'
-    :Wc[x.t]?TN(x.raw)+'：满配只要 '+Wc[x.t]+' 条，现在多了'
-    :TN(x.raw)+'：满配表上没有'+((OK.has(x.raw)||OK.has(x.t))?'（同级替代，凑数可以，但占着位置）':'')});
+  const xN=x=>{const it=sub&&sub.item&&sub.item.id===x.id?sub.item:byId(x.id),a=it&&it.affixes&&it.affixes[x.i];return a?afName(a):TN(x.raw)};
+  waste.forEach(x=>{x.over=!!Wc[x.t]&&!(Dd.has(x.raw)||Dd.has(x.t));x.why=Dd.has(x.raw)||Dd.has(x.t)?xN(x)+'：这个流派用不到'
+    :Wc[x.t]?xN(x)+'：满配只要 '+Wc[x.t]+' 条，现在多了'
+    :xN(x)+'：满配表上没有'+((OK.has(x.raw)||OK.has(x.t))?'（同级替代，凑数可以，但占着位置）':'')});
   const deficit={};Object.keys(Wc).forEach(t=>{const d=Wc[t]-(have[t]||0);if(d>0)deficit[t]=d});
   const r={want:W,wantC:Wc,have,total,waste,deficit,inst};budCache[key]=r;return r}
 /* 验货（单件）：胚对不对 + 该部位的神力齐不齐 + 身上有几条废词条、转不转得掉。
@@ -1920,13 +1959,13 @@ function verdictOf0(it){
   const lk=LOCKED(it.st),cy96=it.st==='96';
   const im=idealMatch(it,vi);
   if(im&&im.exact)return {k:'keep',n:'完美件',why:(im.swaps&&im.swaps.length?im.swaps.map(w=>'律'+w.pos+' '+TN(w.t)+' 顶了满配的 '+TN(im.raw[w.for]||w.for)+'（'+TN(im.raw[w.for]||w.for)+(w.half?' 别件已经带了，全套条数刚好）':' 去别件补）')).join('；'):'和满配长相一模一样')+(cy96?'，可以直接承音':'')};
-  if(im&&im.one){const dr=zlDir(it.slot,im.one.to);return {k:'wait',n:'完美[转]',why:`律${im.one.pos} ${TN(im.one.from)}${im.over&&im.over.includes(im.one.pos)?'（全套 '+TN(im.one.from)+' 已经够 '+(acctOf(vi).Wc[cT(im.one.from)]||0)+' 条，这条多出来）':''} → ${TN(im.one.to)}${dr?'（'+dr+'）':''}，转完就是满配`+(cy96?'；转完再承音':'')}}
+  if(im&&im.one){const dr=zlDir(it.slot,im.one.to);return {k:'wait',n:'完美[转]',why:`律${im.one.pos} ${afName(it.affixes[im.one.pos]||{})}${im.over&&im.over.includes(im.one.pos)?'（全套 '+afName(it.affixes[im.one.pos]||{})+' 已经够 '+(acctOf(vi).Wc[cT(im.one.from)]||0)+' 条，这条多出来）':''} → ${TN(im.one.to)}${dr?'（'+dr+'）':''}，转完就是满配`+(cy96?'；转完再承音':'')}}
   const movable=rerollMovable(q.I);
   const alt=qcAlt(it),ap=alt.filter(x=>x.q.pass);
   const who=ap.length?ap.slice(0,2).map(x=>x.sn+'·'+x.vn).join('、'):null;
   const fix=()=>q.fixTo.slice(0,3).map(t=>TN(t)).join('/');
   const fixD=()=>q.fixTo.slice(0,3).map(t=>{const d=zlDir(it.slot,t);return TN(t)+(d?'（'+d+'）':'')}).join('/');
-  const act=()=>`缺 ${fixD()}，把律${q.I.pos} ${TN(q.I.from)} 转掉`+(cy96?'；转完再承音':'');
+  const act=()=>`缺 ${fixD()}，把律${q.I.pos} ${afName(it.affixes[q.I.pos]||{})} 转掉`+(cy96?'；转完再承音':'');
   // 缺什么（转律救不了的）：神力、胚
   const lackOf=()=>{const a=[];
     if(q.missHard.length)a.push('缺 '+q.missHard.map(t=>TN(t)).join('、'));
@@ -1937,8 +1976,8 @@ function verdictOf0(it){
   /* v255（审查 #32）：2 条以上废词条、能转掉 1 条时，说清楚哪条能转、哪条永久卡住（总档 7.1⑤） */
   const stuckText=()=>{if(!q.bad.length)return '';
     if(!lk&&movable&&q.bad.length>1&&q.I.pos!=null){const rest=q.bad.filter(i=>i!==q.I.pos);
-      return `律${q.I.pos} ${TN(q.I.from)} 能转${q.fixTo.length?'成 '+fixD():''}，但 ${rest.map(i=>'律'+i+' '+TN(it.affixes[i].t)).join('、')} 永久卡住（一件只能转一格）`}
-    return `废词条 ${q.bad.map(i=>'律'+i+' '+TN(it.affixes[i].t)).join('、')} 转不掉`};
+      return `律${q.I.pos} ${afName(it.affixes[q.I.pos]||{})} 能转${q.fixTo.length?'成 '+fixD():''}，但 ${rest.map(i=>'律'+i+' '+afName(it.affixes[i])).join('、')} 永久卡住（一件只能转一格）`}
+    return `废词条 ${q.bad.map(i=>'律'+i+' '+afName(it.affixes[i])).join('、')} 转不掉`};
   const tmpWhy=tail=>{const l=lackOf(),w=l||stuckText()||'数值还差';return w+(l?'，不够转律':'')+'，'+tail};
   if(q.pass&&q.capBlk&&q.capBlk.length){
     const c=q.capBlk[0];
@@ -1946,7 +1985,7 @@ function verdictOf0(it){
   if(q.pass){
     /* v195：词条都要 ≠ 完美件。只有和满配长相一样（上面 im.exact）才叫完美件；
        否则说清楚和满配差在哪（例：势会心大外 陌刀 律1 会心，满配那格要势，转律位锁在律3 补不上） */
-    if(!q.bad.length){const d=im&&im.extra&&im.extra.length?im.extra.map(i=>'律'+i+' '+TN((it.affixes[i]||{}).t)).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、'):'';return {k:'keep2',n:'合格件',why:'词条都要，但和满配长相不一样'+(d?'（'+d+'），'+(im.bal?'全套条数刚好，不用转':lk?'承音锁死':'转律位补不上'):'')}}
+    if(!q.bad.length){const d=im&&im.extra&&im.extra.length?im.extra.map(i=>'律'+i+' '+afName(it.affixes[i]||{})).join('、')+'，满配要 '+im.miss.map(t=>TN(im.raw[t]||t)).join('、'):'';return {k:'keep2',n:'合格件',why:'词条都要，但和满配长相不一样'+(d?'（'+d+'），'+(im.bal?'全套条数刚好，不用转':lk?'承音锁死':'转律位补不上'):'')}}
     if(lk)return {k:'keep2',n:'合格件',why:`承音后转律已锁，${stuckText()}`};
     if(movable)return {k:'wait',n:'合格件',why:act()};
     return {k:'keep2',n:'合格件',why:`转律位已用在律${q.I.zl}（那条本来就对），${stuckText()}`};
@@ -1959,7 +1998,7 @@ function verdictOf0(it){
     const I=q.I,how=lk?'承音锁死':I.state==='busy'?`转律位已用在律${I.zl}`
       :I.blockedPool&&I.blockedPool.length?`全套缺的 ${I.blockedPool.map(TN).join('、')} 转律转不出`
       :I.blockedOwn&&I.blockedOwn.length?`全套缺的 ${I.blockedOwn.map(TN).join('、')} 这件律里已经有了`:'转律补不上';
-    return {k:'keep2',n:'合格件',why:`律${b} ${TN(it.affixes[b].t)} 多出来，${how}${m?'，少 1 条 '+TN(m):''}`}}
+    return {k:'keep2',n:'合格件',why:`律${b} ${afName(it.affixes[b])} 多出来，${how}${m?'，少 1 条 '+TN(m):''}`}}
   /* v255（审查 #32）：以前「2 条以上废词条、转掉 1 条后还有 3 条有用」也叫合格件 —— 和总档 7.1⑤（只能转 1 条，其余永久卡住 → 考虑重开）、7.5 矛盾，拿掉；
      这种件往下走：同部位最好的叫过渡件，有更好的就换 / 扔 */
   // 别的流派/小流派那边是合格件 → 直接标出来，不叫扔
@@ -1974,7 +2013,7 @@ function verdictOf0(it){
     /* 这件转律还能补上整套缺的词条，而更好的那件做不到（已承音锁死 / 没有这条），且这件数值不比它低 → 不扔，等转出来再用（用户 2026-11-07） */
     if(!lk&&movable&&q.fixTo.length){const ft=new Set(q.fixTo);
       const btLk=LOCKED(bt.st),btHas=bt.affixes.slice(1).some(a=>ft.has(a.t));
-      if((btLk||!btHas)&&qOf(it,vi)>=qOf(bt,vi)-0.02)return {k:'wait',n:'合格件',why:`等转出 ${fix()}：律${q.I.pos} ${TN(q.I.from)} 转掉；成色 ${pct(qOf(it,vi))} 对 ${tagOf(bt)} ${pct(qOf(bt,vi))}`}}
+      if((btLk||!btHas)&&qOf(it,vi)>=qOf(bt,vi)-0.02)return {k:'wait',n:'合格件',why:`等转出 ${fix()}：律${q.I.pos} ${afName(it.affixes[q.I.pos]||{})} 转掉；成色 ${pct(qOf(it,vi))} 对 ${tagOf(bt)} ${pct(qOf(bt,vi))}`}}
     if(myShen&&!othersShen)return {k:'tmp',n:'过渡件',why:'同部位只有这件带神力（转律洗不出来），先留着'};
     return {k:'drop',n:'扔',why:`库里 ${tagOf(bt)} 更好（${gradeOf(bt,vi).star}/3★）`}}
   // 在穿，而且库里同部位没有验货能过的 → 过渡件，不是垃圾
@@ -2073,37 +2112,17 @@ function qOf(it,vi){if(!it)return 0;
 const pct=x=>Math.round(x*100)+'%';
 /* 备用件：该给哪套 + 转律后给哪套 */
 /* 没穿上的件：适合哪个存档？没有就看同系流派；只在 ≥2★ 且比那边现有的好才推荐，否则扔（用户 2026-11-06） */
-function libFit(it){
-  const p=P(),cur=curVarSafe(),lo=[],seen=new Set();
-  loList().forEach(([lk,ln])=>{const L=(p.lo||{})[lk];if(!L)return;
-    const vi=loViL(L),f=gradeOf(it,vi);if(!f)return;
-    seen.add(vi);
-    const there=byId((L.equip||{})[it.slot]);
-    if(there&&there.id===it.id)return;
-    const q1=qOf(it,vi),q2=there?qOf(there,vi):0,tf=there?gradeOf(there,vi):null;
-    const better=!there||q1>q2+0.02||(Math.abs(q1-q2)<=0.02&&f.star>tf.star);
-    if(f.star>=2&&better)lo.push({lk,ln,star:f.star,there,q1});});
-  lo.sort((a,b)=>b.star-a.star||b.q1-a.q1);
-  if(lo.length)return {k:'lo',lo};
-  const sys=[],itT=Math.max(100,parseInt(String(it.st).replace('cy',''))||100);
-  SCHOOLS.forEach(x=>{if(x.sys!==sc().sys)return;
-    x.vars.forEach((v,i)=>{if(!(v.xf||[]).some(q=>q))return;
-      if(vHid(x,v))return;
-      if(x.id===sc().id&&seen.has(i))return;
-      if(tierOfVar(v)!==itT)return;
-      const f=asSchool(x.id,()=>gradeOf(it,i));
-      if(f&&f.star>=2)sys.push({n:x.n+'·'+v.n,star:f.star})})});
-  sys.sort((a,b)=>b.star-a.star);
-  if(sys.length)return {k:'sys',sys};
-  return {k:'drop'}}
+function libFit(it){const r=fitCascade(it);if(!r)return {k:'drop'};
+  const next=r.there?fitCascade(r.there,r.lk,r.lk):null;   // ⑤ 被顶下来的那件接着往后比
+  return {k:'lo',lo:[{lk:r.lk,ln:r.ln,slot:r.slot,star:r.star,there:r.there,tr:r.tr,q1:r.q,why:r.why,rn:r.rn}],next}}
 const fitShort=f=>f.k==='drop'?'·扔':'·适合';
 function fitLine(it,f){
-  if(f.k==='lo')return `<div class="adv go vd"><b>适合 ${f.lo.slice(0,2).map(x=>esc(x.ln)).join('、')}</b>`
-    +`<span class="hint"> · ${f.lo.slice(0,2).map(x=>`${esc(x.ln)} ${x.star}/3★`+(x.there?`，顶掉 ${esc(tagOf(x.there))}`:'，那边空着')).join('；')}</span> `
-    +f.lo.slice(0,2).map(x=>`<button class="mini" data-mv2="${it.id}|${x.lk}">挂到${esc(x.ln)}</button>`).join(' ')+`</div>`;
-  if(f.k==='sys')return `<div class="adv alt vd"><b>适合同系 ${f.sys.slice(0,2).map(x=>esc(x.n)).join('、')}</b>`
-    +`<span class="hint"> · 你还没建这套存档（${f.sys[0].star}/3★），建了再挂</span></div>`;
-  return `<div class="adv no vd"><b>扔</b><span class="hint"> · 没有存档用得上（都不到 2★），同系流派也没有</span></div>`}
+  if(f.k==='lo'){const x=f.lo[0];
+    return `<div class="adv go vd"><b>适合 ${esc(x.ln)}</b>`
+      +`<span class="hint"> · ${x.star}/3★`+(x.why==='rate'?`，补三率：${rnTxt(x.rn)}`:'')+(x.there?`，顶掉 ${esc(tagOf(x.there))}（${x.tr.star}/3★）`:'，那边空着')+`</span> `
+      +`<button class="mini" data-mv2="${it.id}|${x.lk}|${x.slot}">挂到${esc(x.ln)}</button>`
+      +(f.next?`<br><span class="hint">顶下来的 ${esc(tagOf(x.there))} 可以给 <b>${esc(f.next.ln)}</b>（${f.next.star}/3★${f.next.there?`，顶掉 ${esc(tagOf(f.next.there))}`:'，那边空着'}）</span>`:'')+`</div>`}
+  return `<div class="adv no vd"><b>扔</b><span class="hint"> · 你建的页签都用不上（都不到 2★，或不比那套现在穿的好）</span></div>`}
 function libAdvice(it){
   const p=P(),out=[];
   const rows=loList().map(([lk,ln])=>{const L=(p.lo||{})[lk];if(!L)return null;
@@ -2115,10 +2134,9 @@ function libAdvice(it){
   const btn=(lk,ln,t)=>`<button class="mini" data-mv2="${it.id}|${lk}">${t}${esc(ln)}</button>`;
   if(on.length){
     const qn=qOf(it,on[0].vi);
-    const b2=rows.filter(r=>!r.on&&qOf(it,r.vi)>qn+0.02).sort((a,b)=>qOf(it,b.vi)-qOf(it,a.vi))
-      .map(r=>({r,w:beatsWorn(it,r)})).find(x=>x.w.ok);
-    out.push(`<div class="adv alt">在用：<b>${on.map(r=>esc(r.ln)+`（${r.f.star}/3★）`).join('、')}</b>`
-      +(b2?`；<b>${esc(b2.r.ln)}</b> 更用得上（成色 ${pct(qOf(it,b2.r.vi))}${b2.w.there?` 对 ${pct(qOf(b2.w.there,b2.r.vi))}`:'，那边空着'}）${btn(b2.r.lk,b2.r.ln,'也挂到')}`:'')+'</div>');
+    const b2=fitCascade(it);
+    out.push(`<div class="adv alt">在用：<b>${on.map(r=>esc(r.ln)+`（${asTab(r.lk,()=>gradeOf(it,curVarSafe())).star}/3★）`).join('、')}</b>`
+      +(b2?`；<b>${esc(b2.ln)}</b> 也用得上（${b2.star}/3★${b2.why==='rate'?'，补三率：'+rnTxt(b2.rn):''}${b2.there?`，顶掉 ${esc(tagOf(b2.there))}`:'，那边空着'}）<button class="mini" data-mv2="${it.id}|${b2.lk}|${b2.slot}">也挂到${esc(b2.ln)}</button>`:'')+'</div>');
   }else{
     const cmp=rows.map(r=>{const there=byId((r.L.equip||{})[it.slot]),tf=there?gradeOf(there,r.vi):null;
       // 成色已经按稀缺度加权（神力/胚最重），比单纯数契合条数准
@@ -2203,10 +2221,12 @@ function drawTop(){
   $('bvar').innerHTML=(foreign?'<option value="">（'+esc(sc().n)+' 的存档）</option>':'')+vo;
   $('bvar').value=foreign?'':curVarSafe();
   LO();   // 保证 active 有效
-  $('tabs').innerHTML=loList().map(([k,n])=>{const L=(P().lo||{})[k],on=P().active===k;
+  const LT=loList();
+  $('tabs').innerHTML=LT.map(([k,n],ti)=>{const L=(P().lo||{})[k],on=P().active===k;
     const nv=L&&L.equip?Object.keys(L.equip).filter(s=>L.equip[s]).length:0;
     const nn=esc(n).replace(/(大外流?)/,'<i class="fl fa">$1</i>').replace(/(小外流?)/,'<i class="fl fb">$1</i>');   // 大外橙、小外蓝
-    return `<button data-lo="${k}" class="${on?'on':''}">${nn}<span class="hint" style="margin-left:6px;color:inherit;opacity:.75">${nv}/8</span></button>`}).join('');
+    const arr=on&&LT.length>1?`${ti>0?'<span class="ord" data-ord="-1" title="往左挪（更优先）">◀</span>':''}${ti<LT.length-1?'<span class="ord" data-ord="1" title="往右挪">▶</span>':''}`:'';
+    return `<button data-lo="${k}" class="${on?'on':''}">${nn}<span class="hint" style="margin-left:6px;color:inherit;opacity:.75">${nv}/8</span>${arr}</button>`}).join('');
   /* 删掉的套要有路建回来。以前只能跑到验货清单那边点「把这套建成存档」，
      而且要先把清单页签切到参考毕业面板那一个 —— 太难找。删在哪就要能在哪建。 */
   /* 只列被删掉的。没建过的变体本来就有个 0/8 的页签在，点一下就建了，
@@ -2317,7 +2337,7 @@ function drawSlots(){
         ${altChip(A)}
       </div>
       <ul class="afx">${afx}</ul>
-      ${it?(verdictLine(it)+qcAdvice(it,1)+xsAdvice(it)+altLoAdvice(k,it)+peiAdvice(k,it)+((verdictOf(it)||{}).k==='alt'?zlAdvice(k,it):'')+(((verdictOf(it)||{}).k==='drop')?'':cyAdvice(k,it)+growAdvice(it))):''}
+      ${it?(verdictLine(it)+qcAdvice(it,1)+xsAdvice(it)+altLoAdvice(k,it)+dyHint(it)+peiAdvice(k,it)+((verdictOf(it)||{}).k==='alt'?zlAdvice(k,it):'')+(((verdictOf(it)||{}).k==='drop')?'':cyAdvice(k,it)+growAdvice(it))):''}
       ${it?`<div class="btns"><button class="mini" data-sed="${it.id}">编辑这件</button></div><div id="sed_${it.id}"></div>`:''}
     </div>`}).join(''),afterSlots);
 }
@@ -2411,7 +2431,7 @@ function panelBox(R,c){const open=D.opt.calcOpen=D.opt.calcOpen||{},all=!!D.opt.
     if(k){const y=Math.min(RCAP[k],toY(k,r.val,d)),z=k==='crit'?V('zjCrit'):k==='intent'?V('zjIntent'):0;
       return `黄字 <b>${fmt(y,1)}%</b>${y>=RCAP[k]-0.05?' <b style="color:var(--bad)">撞上限 '+RCAP[k]+'%</b>':''}${z?` · 最终 ${fmt(y,1)} + 直接 ${fmt(z,1)} = <b>${fmt(y+z,1)}%</b>`:''}`}
     if(r.k==='hp')return `白字；游戏面板 = 白字 × ${c.hpMul} = <b>${fmt(r.val*c.hpMul,0)}</b>`;
-        if((r.k==='selfMax'||r.k==='selfMin')&&r.oth)return `游戏面板「属攻」会多 ${fmt(r.oth,1)}（别系属攻，对这个流派无效，点 ? 看）`;
+        if((r.k==='selfMax'||r.k==='selfMin')&&r.oth)return `游戏面板「属攻」会多 ${fmt(r.oth,1)}（${esc(r.othN||'其他系的属攻')}，这个流派用不到，点 ? 看）`;
     return ''};
   const rowH=r=>{const op=all||open[r.k];
     return `<tr><td>${esc(CALCN[r.k])}</td><td class="n"><b>${fmt(r.val,r.k==='hp'?0:PCT.includes(r.k)?2:1)}</b>${PCT.includes(r.k)?'%':''}</td><td class="hint">${extra(r)}</td><td><button class="mini" data-cq="${r.k}" title="看怎么算的">?</button></td></tr>`
@@ -2684,11 +2704,11 @@ function calcPanel(o){o=o||{};
     ['装备劲 × '+JIN2MIN,eq('jin')*JIN2MIN],['装备敏 '+fmt(eq('min'),1)+' × 0.9',eq('min')*0.9]]));
   /* v248（11-16 你定）：这里只算本系 + 无相。游戏面板的「属攻」是 本系 + 无相 + 别系 一起显示（11-16 拆开对上：401~871 = 裂石 374~793 + 无相 26 + 鸣金 0~51），
      别系属攻对这个流派无效，不算进来，毕业率也不算 */
-  const othN=[...oth.sys].join('、')||'别系',othTxt=(oth.max||oth.min)?`你身上有别系属攻：${othN} ${fmt(oth.min,1)}~${fmt(oth.max,1)}，对${sy}流派无效，这里和毕业率都不算；游戏面板的「属攻」会把它一起加进去，所以面板最大值会比这里多 ${fmt(oth.max,1)}。`:'';
-  const selfNote=`只算${sy} + 无相（游戏面板的「属攻」= ${sy} + 无相 + 别系）。${othTxt}装备自带的属性攻击没建模。`;
+  const othN=[...oth.sys].map(x=>x+'攻击').join('、')||'其他系的属攻',othTxt=(oth.max||oth.min)?`你身上有 ${othN} ${fmt(oth.min,1)}~${fmt(oth.max,1)}，对${sy}流派无效，这里和毕业率都不算；游戏面板的「属攻」会把它一起加进去，所以面板最大值会比这里多 ${fmt(oth.max,1)}。`:'';
+  const selfNote=`只算${sy} + 无相（游戏面板的「属攻」= ${sy} + 无相 + 其他系的属攻）。${othTxt}装备自带的属性攻击没建模。`;
   R.push(row('selfMax',[...BL.self,[wkN('max'),gen||noWk?0:n(wk.max),!gen&&!noWk],...T_('selfMax'),['心法',n(XE.add.selfMax)],['装备词条 最大'+sy+'（含无相）',eq('selfMax')]],selfNote));
   R.push(row('selfMin',[...BL.self,[wkN('min'),gen||noWk?0:n(wk.min),!gen&&!noWk],...T_('selfMin'),['心法',n(XE.add.selfMin)],['装备词条 最小'+sy+'（含无相）',eq('selfMin')]],selfNote));
-  R[R.length-2].oth=oth.max;R[R.length-1].oth=oth.min;
+  R[R.length-2].oth=oth.max;R[R.length-1].oth=oth.min;R[R.length-2].othN=R[R.length-1].othN=othN;
   penLater.forEach(([w,by,cap,rate])=>{const r0=R.find(r=>r.k===by),v=r0?r0.val:0,got=+(rate*Math.min(v,cap)).toFixed(2);
     tadd('spen',got,`${w}·${sy}穿透：${rate} × min(${by==='selfMax'?'最大':'最小'}${sy} ${fmt(v,1)}, ${fmt(cap,2)})`)});
   R.push(row('hp',[['基础气血（18 级两个号反推，待验证）',BASEHP],['体 '+fmt(cur.ti,0)+' × '+TI2HP,cur.ti*TI2HP],['御 '+fmt(cur.yu,0)+' × '+YU2HP,cur.yu*YU2HP],['武库'+wkL('hp'),n(wk.hp)],['叠音'+dyL('hp'),dyv('hp',LV.dy.hp)],['蹊跷 '+QQ.k+' 区',QQ.hp],['突破（'+nm+'）',b.hp],['通用天赋（'+nm+'）',t.hp],
@@ -3011,7 +3031,7 @@ function drawWaste(){
     H.push(rows.map(r=>{const I=r.I,col=I.state==='ok'&&!I.block?'var(--good)':I.block?'var(--bad)':I.state==='nogap'?'var(--mute,#999)':'var(--bad)';
       return `<div style="padding:6px 0;border-bottom:1px solid var(--line)">
       <b>${esc(tagOf(r.it))}</b> ${esc(r.it.name||'')}
-      <span class="hint">${r.mine.map(x=>`${x.i===0?'胚':'律'+x.i} ${esc(TN(x.raw))}`).join('、')}</span><br>
+      <span class="hint">${r.mine.map(x=>`${x.i===0?'胚':'律'+x.i} ${esc(afName(r.it.affixes[x.i]||{t:x.raw}))}`).join('、')}</span><br>
       <span style="color:${col}">${rerollLine(r.it,I)}</span>${rerollStuckNote(I)}
     </div>`}).join(''));
   } else H.push('<p class="hint" style="margin:0">这套身上没有废词条。</p>');
@@ -3338,7 +3358,7 @@ const MXICO={};  /* 公开版不内置游戏官方图标 */
 function mxIco(id,col,px){px=px||18;return MXICO[id]?`<span class="ico mxi mxi-${id}" role="img" aria-hidden="true" style="width:${px}px;height:${px}px"></span>`:''}
 const MXL=[['minA','最小外功攻击'],['min','敏'],['crit','会心率'],['maxA','最大外功攻击'],['jin','劲'],['acc','精准率'],
   ['god','对首领/玩家增伤'],['shi','势'],['all','全武学增效'],['qishuAll','全奇术增伤'],['intent','会意率'],
-  ['wxMax','最大无相攻击'],['wxMin','最小无相攻击'],['outer','别系属攻'],['hp','气血最大值'],['ti','体'],['def','外功防御'],['yu','御']];
+  ['wxMax','最大无相攻击'],['wxMin','最小无相攻击'],['outer','其他系属攻（没指定哪一系）'],['hp','气血最大值'],['ti','体'],['def','外功防御'],['yu','御']];
 function mxRows(){const out=[];
   SCHOOLS.forEach(s2=>s2.vars.forEach((v,vi)=>{
     const w={};
@@ -3609,8 +3629,8 @@ const DYCAP={'96':{pen:11.0,wx:13.0,sk:6.0},'100':{pen:12.8,wx:15.2,sk:7.0},'105
 const dyFull=(t,st)=>{const c=DYCAP[String(st||'100').replace(/^cy/,'')||'100']||DYCAP['100'];
   return t==='extPen'||t==='defRes'?c.pen:t==='wxPen'||t==='selfPen'?c.wx:t==='skill'||t==='skill2'?c.sk:0};
 function ovCheck(o){const out=[],f1=x=>fmt(x,x>500?0:1);
-  (o.affixes||[]).forEach((a,i)=>{if(!a||!a.t||a.t==='none')return;const full=fullOf(a.t,o.st),v=+a.v||0;if(!full)return;
-    if(v>full*1.005+0.05||v<full*0.5-0.05)out.push(`${i===0?'胚':'律'+i} ${esc(TN(a.t))} <b>${f1(v)}</b>（这阶范围 ${f1(full*0.5)} ~ ${f1(full)}）`)});
+  (o.affixes||[]).forEach((a,i)=>{if(!a||!a.t||a.t==='none')return;const atk=a.k==='atkMax'||a.k==='atkMin',full=fullOf(atk?'selfMax':a.t,o.st),v=+a.v||0;if(!full)return;
+    if(v>full*1.005+0.05||v<full*0.5-0.05)out.push(`${i===0?'胚':'律'+i} ${esc(atk?atkLabel(a.k==='atkMax'?'max':'min',a.sy):TN(a.t))} <b>${f1(v)}</b>（这阶范围 ${f1(full*0.5)} ~ ${f1(full)}）`)});
   const d=o.dy||{};if(d.t&&d.t!=='none'){const full=dyFull(d.t,o.st),v=+d.v||0;
     if(full&&(v>full*1.005+0.05||v<full*0.6-0.05))out.push(`定音 <b>${f1(v)}</b>（这阶范围 ${f1(full*0.6)} ~ ${f1(full)}）`)}
   return out}
@@ -3640,8 +3660,22 @@ function openEd(id,pref){
 const LVNO=k=>(k==='dao'||k==='qiang')?new Set(['outer','selfMax','selfMin']):new Set(['wxMax','wxMin']);
 /* v256（11-16 你定）：录装备的下拉是固定选项 —— 只列这个部位游戏里开得出来的词条（胚 = 胚池，律 = 总档表一），顺序固定，
    不再按当前流派分成「满配要的 / 同级可垫 / 这流派用不到」。录入是照实记，对不对由验货说 */
-function afxOpts(k){const all=[...COMMON,...(SLOTSP[k]||[])].filter(t=>t!=='none'&&!LVNO(k).has(t));
-  return '<option value="none">（空）</option>'+all.map(t=>`<option value="${t}">${esc(TN(t))}</option>`).join('')}
+/* v267（⑫，11-20 你定）：属攻照实录 —— 环佩和四件防具直接列 8 种（最大 / 最小 × 鸣金、裂石、牵丝、破竹，当前流派那一系排最前），
+   选什么存什么（值写成 atk:max:lieshi，存进库是 {t:'atkMax',sy:'lieshi'}）；武器照旧只有无相。
+   以前只有「最大本系 / 最小本系 / 别系属攻」：选别系存成「最大、系未知」，最小的录不了；
+   而且编辑一件带别系属攻的装备，随便改哪里存回去，原来记的系就被清成「未知」（万仞山披膊那条就是这样没的）。 */
+const ATKV=(mm,sy)=>'atk:'+mm+':'+(sy||'?');
+const atkParse=v=>{const m=/^atk:(max|min):([a-z]+|\?)$/.exec(v||'');return m?{k:m[1]==='max'?'atkMax':'atkMin',mm:m[1],sy:m[2]}:null};
+const atkLabel=(mm,sy)=>(mm==='max'?'最大':'最小')+(SYS[sy]?SYS[sy]+'攻击':'属攻（没记是哪一系，请重选）');
+function atkOpts(cur){const own=sc().sys,o=[];[own,...Object.keys(SYS).filter(x=>x!==own)].forEach(sy=>['max','min'].forEach(mm=>o.push(ATKV(mm,sy))));
+  const c=atkParse(cur);if(c&&c.sy==='?')o.push(cur);return o}
+const edVal=a=>!a?'none':(a.k==='atkMax'||a.k==='atkMin')?ATKV(a.k==='atkMax'?'max':'min',a.sy):(a.t||'none');
+const edAf=(v,val)=>{const q=atkParse(v);return q?{t:q.k,k:q.k,sy:q.sy,abs:true,v:val}:{t:v,v:val}};
+function afxOpts(k,cur){const weapon=k==='dao'||k==='qiang',out=[];
+  [...COMMON,...(SLOTSP[k]||[])].filter(t=>t!=='none'&&!LVNO(k).has(t)).forEach(t=>{
+    if(!weapon&&t==='selfMax'){atkOpts(cur).forEach(v=>out.push(v));return}
+    if(!weapon&&(t==='selfMin'||t==='outer'))return;out.push(t)});
+  return '<option value="none">（空）</option>'+out.map(t=>{const q=atkParse(t);return `<option value="${t}">${esc(q?atkLabel(q.mm,q.sy):TN(t))}</option>`}).join('')}
 /* v257（11-16 你定）：防具胚下拉的顺序 —— 冠 / 胸：会心、精准、会意、气血、外防；胫 / 腕：劲、会心、精准、会意、气血、外防。武器、环佩不变。
    只管显示顺序；PEIPOOL 本身不动（推满配长相时拿它的顺序分先后） */
 const APEISHOW=['crit','acc','intent','hp','def'];
@@ -3689,7 +3723,7 @@ function renderEd(host){
       <div class="ocrM" id="e_ocrMsg"></div></div>`:''}
     <div class="ed" style="margin-top:8px">${[0,1,2,3,4].map(i=>`<div class="row ${i===0?'pei':''}">
       <span class="lb">${i===0?'胚':'律'+i}</span>
-      <select id="e_t${i}">${i===0?pOpts(it.slot):opts(it.slot,it.affixes[i].t)}</select>
+      <select id="e_t${i}">${i===0?pOpts(it.slot):opts(it.slot,edVal(it.affixes[i]))}</select>
       <input type="number" id="e_v${i}" step="0.1" value="${it.affixes[i]?it.affixes[i].v:0}"></div>`).join('')}</div>
     <div class="bar" style="margin-top:6px;opacity:.85">
       <label class="f">定音<select id="e_dt">${Object.entries(dyOpts(it.slot)).map(([k,v])=>`<option value="${k}"${k===it.dy.t?' selected':''}>${v}</option>`).join('')}</select>
@@ -3702,7 +3736,7 @@ function renderEd(host){
       <div id="e_warn" class="warn" style="display:none;margin:0 0 6px"></div>
       <button id="e_cancel">取消</button><button id="e_save" class="p">${id?'保存修改':'加入装备库'}</button>
     </div></div>`;
-  [0,1,2,3,4].forEach(i=>{const s=$('e_t'+i);if(it.affixes[i])s.value=it.affixes[i].t});
+  [0,1,2,3,4].forEach(i=>{const s=$('e_t'+i);if(it.affixes[i])s.value=edVal(it.affixes[i])});
   /* 装备自带（最小/最大攻击、气血、外防）不再手填（用户 2026-11-07）：按阶位表自动取，紫装 ×0.9。
      库里已经存的自带值原样保留，只在「紫装」勾选变了的时候清掉重算。 */
   const upName=()=>{$('e_nm').textContent=nameFor(it,$('e_slot').value,$('e_st').value)};
@@ -3735,7 +3769,7 @@ function renderEd(host){
     const o={pid:D.pid,slot:$('e_slot').value,name:nameFor(it,$('e_slot').value,$('e_st').value),st:$('e_st').value,zl:+$('e_zl').value||0,...($('e_zl').value==='u'?{}:{zlk:1}),
       dy:{t:$('e_dt').value,v:+$('e_dv').value||0,...(/^skill/.test($('e_dt').value)&&$('e_dn').value?{n:$('e_dn').value}:{})},note:it.note||'',
       base:qNow!==qOld?{}:(it.base||{}),            // 自带值不再手填：已有的保留，紫装勾选一变就清掉按阶位重算
-      affixes:[0,1,2,3,4].map(i=>({t:$('e_t'+i).value,v:+$('e_v'+i).value||0}))};
+      affixes:[0,1,2,3,4].map(i=>edAf($('e_t'+i).value,+$('e_v'+i).value||0))};
     if(qNow)o.q='p';
     if(o.affixes.every(a=>a.t==='none')){$('libMsg').textContent='至少选一条词条。';return}
     if(!id&&itemsOf().length>=LIBMAX){edWarn(`装备库已经有 ${itemsOf().length} 件（最多 ${LIBMAX} 件），先删掉不要的或点「清理重复」，再加这件。`);return}
@@ -4053,7 +4087,7 @@ async function impApply(){
         if(o.base&&!(it.base&&Object.keys(it.base).length)){it.base=o.base;ch=true}
         if(ch)await putItem(it);dup++;id=it.id}}
     else if((M.kind==='changed'||M.kind==='maybeCy')&&p.why!=='当成新装备录入'){const it=byId(M.id);if(it){
-        const d=impDiff(it,p);it.affixes=o.affixes;it.dy=o.dy;it.st=o.st;if(o.q)it.q=o.q;if(o.base)it.base=o.base;it.offNo=o.offNo;if(p.zlk){it.zl=p.zl||0;it.zlk=1}
+        const d=impDiff(it,p);it.affixes=o.affixes;it.dy=keepDyN(it.dy,o.dy);it.st=o.st;if(o.q)it.q=o.q;if(o.base)it.base=o.base;it.offNo=o.offNo;if(p.zlk){it.zl=p.zl||0;it.zlk=1}
         it.note=((it.note||'')+'；'+new Date().toLocaleDateString('zh-CN')+' 官方导入更新（'+(p.why||'其他')+'）：'+d.join('，')).replace(/^；/,'');
         await putItem(it);upd++;id=it.id}}
     const same=id?null:(M.kind==='new'||M.kind==='changed'||M.kind==='maybeCy')?null:items.find(i=>i.pid===D.pid&&sig(i)===sig(o));
@@ -4564,7 +4598,10 @@ const canon=o=>o===null||typeof o!=='object'?JSON.stringify(o)
 let syncHold=0;
 function syncMsg(t,bad){syncHold=Date.now()+8000;
   $('sync').innerHTML=bad?'<b style="color:var(--bad)">'+esc(t)+'</b>':esc(t)}
-function lsItems(){try{localStorage.setItem(LS_ITEMS,JSON.stringify(items.map(i=>itStore(i))));return true}
+function lsItems(){try{const cur=localStorage.getItem(LS_ITEMS);
+    if(cur!=null&&lastItemsLocal!=null&&cur!==lastItemsLocal){const cf=[];items=itemsMerge(lastItemsLocal,items,cur,cf);
+      if(cf.length)syncMsg('别的标签页也改了装备，已合并；'+cf.join('、')+' 两边都改了，以这边为准');setTimeout(render,0)}
+    const j=JSON.stringify(items.map(i=>itStore(i)));localStorage.setItem(LS_ITEMS,j);lastItemsLocal=j;return true}
   catch(e){syncMsg('本机存储写不进去（可能满了），这件没存住，请先导出备份',1);return false}}
 async function putItem(it){
   if(!libOK){syncMsg('资料还没读到，这次改动没存',1);return}
@@ -4622,6 +4659,78 @@ function migrateVn(){migrateRename();Object.values(D.profiles||{}).forEach(p=>{
    两边都监听，别的标签 / 设备改了马上刷新进来。只写有变化的那个角色；删角色只在你点「删除角色」或导入备份时才删它那一份。
    界面状态（展开 / 收起、筛选、当前看哪个角色）存这台设备（yy-ui-v1），不进共享资料。
    本机模式（连不上数据库 / 公开版）照旧整份存 yy-lib-v1。 */
+/* v266（11-20 你定，修多标签页互相盖掉）：存之前先读库里 / 本机现在那份，和「上次同步的那份」比，三方合并再写。
+   一个角色切成小块：每个存档一块、角色设置（calc）每一项一块、其余每个字段一块；装备按编号、自定义毕业词条单 / 转律池按名字。
+   只有一边改过的块就用改过的那边；两边都改了同一块才算冲突，以这边为准，提示是哪一块。一边删、一边改，留改的那边。 */
+const BSEP='\u0001';
+const RLAB={name:'角色名',school:'流派',active:'当前存档',solo:'单人等级',soloBy:'单人等级',loHid:'藏起来的存档',offName:'官方角色名',loOrd:'页签顺序'};
+function rBlocks(p){const o={};if(!p)return o;Object.keys(p).forEach(k=>{const v=p[k];
+  if((k==='lo'||k==='calc')&&v&&typeof v==='object'&&!Array.isArray(v))Object.keys(v).forEach(n=>o[k+BSEP+n]=JSON.stringify(v[n]));
+  else o[k]=JSON.stringify(v)});return o}
+function m3(b,m,t,cf,lab){const R={},ks=[];[m,t,b].forEach(x=>Object.keys(x).forEach(k=>{if(!ks.includes(k))ks.push(k)}));
+  ks.forEach(k=>{const B=b[k],M=m[k],T=t[k];let v;
+    if(M===T)v=M;else if(M===B)v=T;else if(T===B)v=M;else{v=M!==undefined?M:T;const l=lab(k);if(!cf.includes(l))cf.push(l)}
+    if(v!==undefined)R[k]=v});return R}
+function mergeRole(base,mine,theirs,cf){
+  const lab=k=>{const i=k.indexOf(BSEP),a=i<0?k:k.slice(0,i),n=i<0?'':k.slice(i+1);return a==='lo'?'存档「'+n+'」':a==='calc'?'角色设置':RLAB[a]||a};
+  const R=m3(rBlocks(base),rBlocks(mine),rBlocks(theirs),cf,lab),p={};
+  Object.keys(R).forEach(k=>{const i=k.indexOf(BSEP);if(i<0)p[k]=JSON.parse(R[k]);else{const a=k.slice(0,i);if(!p[a]||typeof p[a]!=='object')p[a]={};p[a][k.slice(i+1)]=JSON.parse(R[k])}});
+  ['lo','calc'].forEach(a=>{if(!p[a]&&((mine&&mine[a])||(theirs&&theirs[a])))p[a]={}});
+  if(p.lo&&p.active&&!p.lo[p.active]){const ks=Object.keys(p.lo);if(ks.length)p.active=ks[0]}
+  return p}
+function mergeMap(b,m,t,cf,lab,deep){b=b||{};m=m||{};t=t||{};const J=x=>x===undefined?undefined:JSON.stringify(x),out={};
+  [...new Set([...Object.keys(m),...Object.keys(t),...Object.keys(b)])].forEach(k=>{const B=J(b[k]),M=J(m[k]),T=J(t[k]);
+    if(M===T){if(M!==undefined)out[k]=m[k];return}
+    if(M===B){if(T!==undefined)out[k]=t[k];return}
+    if(T===B){if(M!==undefined)out[k]=m[k];return}
+    if(deep&&M!==undefined&&T!==undefined&&B!==undefined){out[k]=deep(b[k],m[k],t[k],cf);return}
+    const l=lab(k);if(!cf.includes(l))cf.push(l);out[k]=M!==undefined?m[k]:t[k]});return out}
+/* 本机模式整份资料（D）的三方合并：角色按 id、角色里面按块；自定义词条单、转律池、矩阵藏起的行按名字；界面状态用这边的 */
+function mergeD(B,M,T,cf){B=B||{};T=T||{};
+  M.profiles=mergeMap(B.profiles,M.profiles,T.profiles,cf,k=>'角色「'+(((M.profiles||{})[k]||(T.profiles||{})[k]||{}).name||k)+'」',(b,m,t,c)=>mergeRole(b,m,t,c));
+  M.cv=mergeMap(B.cv,M.cv,T.cv,cf,k=>'自定义毕业词条单「'+k+'」');M.pools=mergeMap(B.pools,M.pools,T.pools,cf,k=>'转律池');
+  M.opt=M.opt||{};M.opt.vHid=mergeMap((B.opt||{}).vHid,M.opt.vHid,(T.opt||{}).vHid,cf,k=>'矩阵里藏起的行');
+  if(!M.profiles[M.pid])M.pid=Object.keys(M.profiles).find(k=>!M.profiles[k].ghost)||Object.keys(M.profiles)[0]||M.pid}
+function itemsMerge(baseJ,mineArr,theirJ,cf){const toMap=a=>{const o={};(a||[]).forEach(i=>{if(i&&i.id)o[i.id]=i});return o};
+  let B={},T={};try{B=toMap(JSON.parse(baseJ||'[]'))}catch(e){}try{T=toMap(JSON.parse(theirJ||'[]'))}catch(e){}
+  const Mobj={},M={};(mineArr||[]).forEach(i=>{if(i&&i.id){Mobj[i.id]=i;M[i.id]=itStore(i)}});
+  const R=mergeMap(B,M,T,cf,k=>'装备 '+(((Mobj[k]||T[k]||{}).name)||k));
+  /* 选的是这边那件就留原物件（编辑器可能正拿着它），别处的读进来 */
+  return Object.keys(R).map(k=>R[k]===M[k]?Mobj[k]:hydItem(c0(R[k])))}
+const c0=x=>JSON.parse(JSON.stringify(x));
+let lastLocal=null,lastItemsLocal=null;
+/* 云端（v266）：每块记最后改的时间（存在文档的 B 字段，{块: 毫秒}）。收到别处的、或存之前读到库里变了，都按块取时间新的那边 ——
+   两页几乎同时存、谁先到都一样，最后两边会合成同一份。两台设备的时钟差几秒时，「同一块两边都改了」以时钟晚的那边为准。 */
+let roleBT={},sharedBT={},roleEd={},sharedEd={};   // *Ed = 这边写过、还没看到别处跟上的块 {块:{ts,base}}，用来认「两边都改了」
+const sBlocks=o=>{const r={};if(!o)return r;['cv','pools','vHid'].forEach(a=>Object.keys(o[a]||{}).forEach(n=>r[a+BSEP+n]=JSON.stringify(o[a][n])));return r};
+const sFrom=R=>{const o={v:2,cv:{},pools:{},vHid:{}};Object.keys(R).forEach(k=>{const i=k.indexOf(BSEP);o[k.slice(0,i)][k.slice(i+1)]=JSON.parse(R[k])});return o};
+function rFrom(R,like){const p={};Object.keys(R).forEach(k=>{const i=k.indexOf(BSEP);if(i<0)p[k]=JSON.parse(R[k]);else{const a=k.slice(0,i);if(!p[a]||typeof p[a]!=='object')p[a]={};p[a][k.slice(i+1)]=JSON.parse(R[k])}});
+  ['lo','calc'].forEach(a=>{if(!p[a]&&like&&like[a])p[a]={}});if(p.lo&&p.active&&!p.lo[p.active]){const ks=Object.keys(p.lo);if(ks.length)p.active=ks[0]}return p}
+/* 时间 = 毫秒 ×1000 + 这个标签页固定的三位尾数：两页在同一毫秒存也分得出是谁 */
+const TAB=Math.floor(Math.random()*1000);let tsLast=0;const tsNow=()=>{tsLast=Math.max(Date.now()*1000+TAB,tsLast+1);return tsLast};
+/* 这边从上次同步到现在改了哪几块：盖上现在的时间 */
+function stampBT(cur,base,bt0){const bt={...bt0},pend=[],t=tsNow();
+  new Set([...Object.keys(cur),...Object.keys(base)]).forEach(k=>{if(cur[k]!==base[k]){bt[k]=t;pend.push(k)}});return {bt,pend}}
+/* 两边按块取时间新的；时间一样取库里那边。pend = 这边改过的块，库里那边比上次同步还新 → 两边都改了（冲突，记下来） */
+function mergeTs(mB,mBT,tB,tBT,pend,baseBT,cf,lab,ed){const R={},bt={};ed=ed||{};
+  const E={...ed};pend.forEach(k=>E[k]={ts:mBT[k],base:baseBT[k]||0});
+  new Set([...Object.keys(mB),...Object.keys(tB),...Object.keys(mBT),...Object.keys(tBT)]).forEach(k=>{
+    const mt=mBT[k]||0,tt=tBT[k]||0,useM=mt>tt;const v=useM?mB[k]:tB[k];if(v!==undefined)R[k]=v;bt[k]=Math.max(mt,tt);
+    const e=E[k];if(e&&tt!==e.ts&&tt>e.base&&mB[k]!==tB[k]){const l=lab(k);if(!cf.includes(l))cf.push(l);delete ed[k]}
+    else if(e&&tt===e.ts)delete ed[k]});return {R,bt}}
+/* 写进库之后：这次盖了新时间的块记下来，等别处跟上（看到同一个时间）再清 */
+function noteEd(ed,pend,bt){pend.forEach(k=>{if(bt[k])ed[k]={ts:bt[k],base:(ed[k]&&ed[k].base)||0}})}
+const rLab=k=>{const i=k.indexOf(BSEP),a=i<0?k:k.slice(0,i),n=i<0?'':k.slice(i+1);return a==='lo'?'存档「'+n+'」':a==='calc'?'角色设置':RLAB[a]||a};
+const sLab=k=>{const i=k.indexOf(BSEP),a=k.slice(0,i),n=k.slice(i+1);return a==='cv'?'自定义毕业词条单「'+n+'」':a==='pools'?'转律池':'矩阵里藏起的行'};
+const parseBT=x=>{try{return x&&typeof x.B==='string'?JSON.parse(x.B):null}catch(e){return null}};   // null = 旧版页面（v265 以前）写的，没有时间表
+/* 旧版页面写的没有时间表：比上次同步变了的块当成刚刚改的（新版不会把旧版标签页的改动当成很旧的盖掉） */
+function fillBT(theirB,baseB,known){const bt={...known};new Set([...Object.keys(theirB),...Object.keys(baseB)]).forEach(k=>{if(theirB[k]!==baseB[k])bt[k]=tsNow()});return bt}
+/* 把库里那份（P 字符串 + 时间表）和这边合起来；返回 {p:合并后的角色, bt, cf, j:合并后的字符串} */
+function roleJoin(pid,theirP,theirBT,cf){const mine=D.profiles[pid],base=lastRole[pid]!=null?JSON.parse(lastRole[pid]):null;
+  const mB=rBlocks(mine),{bt,pend}=stampBT(mB,rBlocks(base),roleBT[pid]||{});const theirs=JSON.parse(theirP);
+  if(!theirBT)theirBT=fillBT(rBlocks(theirs),rBlocks(base),roleBT[pid]||{});
+  const m=mergeTs(mB,bt,rBlocks(theirs),theirBT,pend,roleBT[pid]||{},cf,rLab,roleEd[pid]=roleEd[pid]||{});const p=rFrom(m.R,mine||theirs);
+  return {p,bt:m.bt,j:JSON.stringify(p),pend:pend.filter(k=>m.bt[k]===bt[k])}}
 const UIKEEP=new Set(['vHid']);                    // D.opt 里真正的资料（矩阵里删掉的行），其余都是界面状态
 let lastShared='',lastRole={},roleDel=new Set(),flushing=false;
 const sharedOf=()=>JSON.stringify({v:2,cv:D.cv||{},pools:D.pools||{},vHid:(D.opt||{}).vHid||{}});
@@ -4629,39 +4738,77 @@ function uiPersist(){const o={};Object.entries(D.opt||{}).forEach(([k,v])=>{if(!
 const realRoles=()=>Object.entries(D.profiles||{}).filter(([k,p])=>p&&!p.ghost);
 function save(){if(!libOK)return;                       // v230 #1：资料没读到之前一律不写
   uiPersist();
-  const j=JSON.stringify(D);if(j===last)return;
+  let j=JSON.stringify(D);if(j===last)return;
   const np=Object.keys(D.profiles||{}).length;
   if(!db){if(np===0&&srvProfN>0){syncMsg('没保存：准备写回的资料一个角色都没有（存储里原来有 '+srvProfN+' 个），已拒绝写入。请刷新页面',1);return}
-    last=j;try{localStorage.setItem('yy-lib-v1',j);srvProfN=np}catch(e){syncMsg('本机存储写不进去（可能满了），这次改动没存住，请先导出备份',1)}return}
+    let cf=null;try{const cur=localStorage.getItem('yy-lib-v1');
+      if(cur&&lastLocal&&cur!==lastLocal&&cur!==j){cf=[];mergeD(JSON.parse(lastLocal),D,JSON.parse(cur),cf);ensureProf();j=JSON.stringify(D)}}catch(e){LOGE(e,'本机合并')}
+    last=j;try{localStorage.setItem('yy-lib-v1',j);lastLocal=j;srvProfN=Object.keys(D.profiles||{}).length}catch(e){syncMsg('本机存储写不进去（可能满了），这次改动没存住，请先导出备份',1)}
+    if(cf){if(cf.length)syncMsg('别的标签页也改了，已合并；'+cf.join('、')+' 两边都改了，以这边为准');setTimeout(render,0)}return}
   last=j;try{localStorage.setItem('yy-lib-v1',j)}catch(e){LOGE(e)}
   clearTimeout(saveT);saveT=setTimeout(flush,900)}
 async function flush(){if(!db||!libOK)return;if(flushing){clearTimeout(saveT);saveT=setTimeout(flush,400);return}
-  flushing=true;let n=0;
+  flushing=true;let n=0,merged=false;const conf=[];
   try{const sh=sharedOf();
-    if(sh!==lastShared){await db.doc('lib/main').set({S:sh,at:Date.now(),ver:APPV});lastShared=sh;n++}
-    for(const [pid,p] of realRoles()){const j=JSON.stringify(p);
-      if(j!==lastRole[pid]){await db.collection('roles').doc(pid).set({P:j,at:Date.now(),ver:APPV});lastRole[pid]=j;n++}}
+    if(sh!==lastShared){const cur0=JSON.parse(sh),{bt:bt0,pend}=stampBT(sBlocks(cur0),sBlocks(lastShared?JSON.parse(lastShared):null),sharedBT);
+      let w=sh,bt=bt0;
+      try{const g=await db.doc('lib/main').get(),x=g&&g.exists?g.data():null;
+        if(x&&typeof x.S==='string'&&x.S!==lastShared){const tS=sBlocks(JSON.parse(x.S)),tBT=parseBT(x)||fillBT(tS,sBlocks(lastShared?JSON.parse(lastShared):null),sharedBT);
+          const m=mergeTs(sBlocks(cur0),bt0,tS,tBT,pend,sharedBT,conf,sLab,sharedEd);
+          w=JSON.stringify(sFrom(m.R));bt=m.bt}}catch(e){LOGE(e,'flush 读 lib/main')}
+      const old=[lastShared,sharedBT];lastShared=w;sharedBT=bt;
+      try{await db.doc('lib/main').set({S:w,B:JSON.stringify(bt),at:Date.now(),ver:APPV})}catch(e){[lastShared,sharedBT]=old;throw e}n++;
+      noteEd(sharedEd,pend.filter(k=>bt[k]===bt0[k]),bt);
+      if(w!==sh){const o=JSON.parse(w),now=sharedOf();
+        if(now!==sh){const a=JSON.parse(now);['cv','pools','vHid'].forEach(k=>o[k]=mergeMap(cur0[k],a[k],o[k],[],x=>x))}
+        D.cv=o.cv;D.pools=o.pools;D.opt.vHid=o.vHid;merged=true}}
+    for(const [pid,p] of realRoles()){const j=JSON.stringify(p);if(j===lastRole[pid])continue;
+      const ref=db.collection('roles').doc(pid);let J;
+      if(lastRole[pid]!=null){let x=null;try{const g=await ref.get();x=g&&g.exists?g.data():null}catch(e){LOGE(e,'flush 读 role')}
+        if(x&&typeof x.P==='string'&&x.P!==lastRole[pid])J=roleJoin(pid,x.P,parseBT(x),conf);}
+      if(!J){const base=lastRole[pid]!=null?JSON.parse(lastRole[pid]):null,{bt,pend}=stampBT(rBlocks(p),rBlocks(base),roleBT[pid]||{});J={p,bt,j,pend}}
+      const old=[lastRole[pid],roleBT[pid]];lastRole[pid]=J.j;roleBT[pid]=J.bt;
+      try{await ref.set({P:J.j,B:JSON.stringify(J.bt),at:Date.now(),ver:APPV})}catch(e){lastRole[pid]=old[0];roleBT[pid]=old[1];throw e}n++;
+      noteEd(roleEd[pid]=roleEd[pid]||{},J.pend||[],J.bt);
+      if(J.j!==j){const now=D.profiles[pid];D.profiles[pid]=now&&JSON.stringify(now)!==j?mergeRole(JSON.parse(j),now,J.p,[]):J.p;merged=true}}
     for(const pid of [...roleDel]){if(D.profiles[pid]&&!D.profiles[pid].ghost){roleDel.delete(pid);continue}
-      await db.collection('roles').doc(pid).delete();delete lastRole[pid];roleDel.delete(pid);n++}
+      await db.collection('roles').doc(pid).delete();delete lastRole[pid];delete roleBT[pid];roleDel.delete(pid);n++}
     srvProfN=realRoles().length;
-    if(n&&Date.now()>syncHold)$('sync').textContent='已保存 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
+    if(merged){last='';ensureProf();render();save()}
+    if(conf.length)syncMsg('别处也改了，已合并；'+conf.join('、')+' 两边都改了，以后改的那边为准');
+    else if(merged)syncMsg('别处也改了，已合并 ✓');
+    else if(n&&Date.now()>syncHold)$('sync').textContent='已保存 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}
   catch(e){LOGE(e,'flush');$('sync').innerHTML='<b style="color:var(--bad)">保存失败</b>'}
   finally{flushing=false}}
 /* 别的标签 / 设备改了某个角色：这边没有没存的改动就直接换成新的；这边也正在改同一个角色，就以这边为准（马上会写回去） */
-function roleSnap(q){let ch=false,keep=[];const seen=new Set();
+function roleSnap(q){let ch=false,need=false;const seen=new Set(),conf=[];
   (q.docs||[]).forEach(d=>{const x=d.data&&d.data();seen.add(d.id);if(!x||typeof x.P!=='string'||roleDel.has(d.id))return;
     if(x.P===lastRole[d.id])return;
-    const mine=D.profiles[d.id],dirty=mine&&!mine.ghost&&lastRole[d.id]!=null&&JSON.stringify(mine)!==lastRole[d.id];
-    if(dirty){keep.push(mine.name||d.id);return}
-    let p;try{p=JSON.parse(x.P)}catch(e){LOGE(e,'role '+d.id);return}
-    D.profiles[d.id]=p;lastRole[d.id]=x.P;ch=true});
-  Object.keys(lastRole).forEach(pid=>{if(!seen.has(pid)&&!roleDel.has(pid)){delete lastRole[pid];if(D.profiles[pid]){delete D.profiles[pid];ch=true}}});
+    const mine=D.profiles[d.id];let p,bt=parseBT(x);
+    if(!mine||mine.ghost||lastRole[d.id]==null){try{p=JSON.parse(x.P)}catch(e){LOGE(e,'role '+d.id);return}}
+    else{let J;try{J=roleJoin(d.id,x.P,bt,conf)}catch(e){LOGE(e,'role '+d.id);return}p=J.p;bt=J.bt;if(J.j!==x.P)need=true}
+    D.profiles[d.id]=p;lastRole[d.id]=x.P;roleBT[d.id]=bt||{};ch=true});
+  Object.keys(lastRole).forEach(pid=>{if(!seen.has(pid)&&!roleDel.has(pid)){delete lastRole[pid];delete roleBT[pid];if(D.profiles[pid]){delete D.profiles[pid];ch=true}}});
   if(realRoles().length)Object.keys(D.profiles).forEach(k=>{if(D.profiles[k]&&D.profiles[k].ghost){delete D.profiles[k];ch=true}});
-  if(keep.length)syncMsg('别处也改了「'+keep.join('、')+'」，这边有没存的改动，以这边为准');
-  if(ch){last='';ensureProf();migrateVn();render()}}
+  if(conf.length)syncMsg('别处也改了，已合并；'+conf.join('、')+' 两边都改了，以后改的那边为准');
+  if(ch){last='';ensureProf();migrateVn();render();if(need)save()}}
 function sharedSnap(s){if(!s||!s.exists)return;const x=s.data&&s.data();if(!x||typeof x.S!=='string'||x.S===lastShared)return;
-  if(sharedOf()!==lastShared)return;                // 这边有没存的改动
-  try{const o=JSON.parse(x.S);D.cv=o.cv||{};D.pools=o.pools||{};D.opt.vHid=o.vHid||{};lastShared=x.S;last='';render()}catch(e){LOGE(e,'lib/main')}}
+  try{const sh=sharedOf(),cur0=JSON.parse(sh),{bt,pend}=stampBT(sBlocks(cur0),sBlocks(lastShared?JSON.parse(lastShared):null),sharedBT),conf=[];
+    const tS=sBlocks(JSON.parse(x.S)),tBT=parseBT(x)||fillBT(tS,sBlocks(lastShared?JSON.parse(lastShared):null),sharedBT);
+    const m=mergeTs(sBlocks(cur0),bt,tS,tBT,pend,sharedBT,conf,sLab,sharedEd),o=sFrom(m.R);
+    D.cv=o.cv;D.pools=o.pools;D.opt.vHid=o.vHid;lastShared=x.S;sharedBT=m.bt;last='';
+    if(conf.length)syncMsg('别处也改了，已合并；'+conf.join('、')+' 两边都改了，以后改的那边为准');
+    render();if(JSON.stringify(o)!==x.S)save()}catch(e){LOGE(e,'lib/main')}}
+window.addEventListener('storage',e=>{if(!localMode||!libOK||!e||!e.newValue)return;
+  try{if(e.key==='yy-lib-v1'&&e.newValue!==lastLocal){const T=JSON.parse(e.newValue),myOpt=D.opt||{},myPid=D.pid,cf=[];
+      if(JSON.stringify(D)===last){D=T;D.opt={...myOpt,vHid:(T.opt||{}).vHid||{}};if(D.profiles&&D.profiles[myPid])D.pid=myPid}
+      else mergeD(lastLocal?JSON.parse(lastLocal):T,D,T,cf);
+      lastLocal=e.newValue;ensureProf();migrateVn();last=JSON.stringify(D);if(last!==e.newValue){last='';save()}
+      if(cf.length)syncMsg('别的标签页也改了，已合并；'+cf.join('、')+' 两边都改了，以这边为准');render()}
+    else if(e.key===LS_ITEMS&&e.newValue!==lastItemsLocal){items=JSON.parse(e.newValue).map(hydItem);lastItemsLocal=e.newValue;render()}}
+  catch(er){LOGE(er,'别的标签页的改动读不进来')}});
+/* v266（8.5 第 11 条）：官方导出没有定音的具体技能名。重新导入更新原件时，定音种类没变、新的又没带名字 → 留你原来选的；种类变了就不留（原来那个名字已经不对了） */
+function keepDyN(old,neu){if(!neu)return neu;if(neu.n||!old||!old.n||old.t!==neu.t)return neu;return {...neu,n:old.n}}
 /* ===== 截图识别录入 =====
    用 sample 能力把游戏截图交给 Claude，要它吐结构化 JSON，再填进表单。
    三条硬规则：
@@ -4770,7 +4917,11 @@ async function runOCR(blob,msg){
     got.push({t,v:Math.round((+a.v||0)*10)/10})}
   // 胚不在这个部位的胚池里 → 标出来但照填，让用户自己判断
   const peiBad=got[0].t!=='none'&&!(PEIPOOL[slot]||[]).includes(got[0].t);
-  got.forEach((a,i)=>{$('e_t'+i).value=a.t;$('e_v'+i).value=a.v});
+  /* v267：属攻按读到的名字认出是哪一系（以前别系一律存成「系未知」） */
+  got.forEach((a,i)=>{if(i>0&&/^(selfMax|selfMin|outer)$/.test(a.t)){const tx=String(((r.affixes||[])[i]||{}).txt||'');
+      const sy=a.t==='outer'?(Object.entries(OCR_SYS).find(([nm])=>new RegExp(nm,'i').test(tx))||[])[1]:sc().sys;
+      const mm=a.t==='selfMin'||/最小|min/i.test(tx)?'min':'max';a.t=ATKV(mm,sy||'?');$('e_t'+i).innerHTML=afxOpts(slot,a.t)}
+    $('e_t'+i).value=a.t;$('e_v'+i).value=a.v});
   /* v261（11-17 你指出：直接读「[转]」就好，别让它算序号）：取带 zl:true 的那一条在 affixes 里的位置 —— 0 是胚（胚不可能是转律位，当读错），1~4 就是律1~律4。
      顶层的 zl 数字只作旧写法的退路。 */
   let zl=(r.affixes||[]).findIndex(a=>a&&(a.zl===true||a.zl==='true'||/\[\s*转\s*\]/.test(String(a.txt||''))));
@@ -4868,6 +5019,7 @@ async function connect(){
   let d=null;try{d=await window.claude?.use?.('db')}catch(e){LOGE(e)}
   if(!d){localMode=true;db=null;
     let x=null,xi=null;try{x=localStorage.getItem('yy-lib-v1');xi=localStorage.getItem(LS_ITEMS)}catch(e){LOGE(e)}
+    lastLocal=x;lastItemsLocal=xi;
     if(x){try{D=JSON.parse(x)}catch(e){libFail('这台设备上的资料读不出来（可能损坏了）。为了不覆盖它，现在不会保存任何改动。可以先用备份文件恢复，或把这行截图给 Claude。',1);return}}
     if(xi){try{const a=JSON.parse(xi);items=Array.isArray(a)?a.map(hydItem):[]}catch(e){libFail('这台设备上的装备读不出来（可能损坏了）。为了不覆盖它，现在不会保存任何改动。可以先用备份文件恢复，或把这行截图给 Claude。',1);return}}
     srvProfN=Object.keys((D&&D.profiles)||{}).length;
@@ -4893,11 +5045,12 @@ async function connect(){
   if(err){libFail('没读到你的角色，请刷新。（已自动重试 3 次：'+String(err&&err.message||err).slice(0,80)+'）');return}
   const roles={};
   for(const d of (rq&&rq.docs)||[]){const x=d.data&&d.data();if(!x||typeof x.P!=='string')continue;
-    try{roles[d.id]=JSON.parse(x.P);lastRole[d.id]=x.P}catch(e){libFail('角色「'+d.id+'」读回来了但解析不了。为了不覆盖它，现在不会保存任何改动。请刷新；还不行就把这行截图给 Claude。');return}}
+    try{roles[d.id]=JSON.parse(x.P);lastRole[d.id]=x.P;roleBT[d.id]=parseBT(x)||{}}catch(e){libFail('角色「'+d.id+'」读回来了但解析不了。为了不覆盖它，现在不会保存任何改动。请刷新；还不行就把这行截图给 Claude。');return}}
   if(Object.keys(roles).length){D={pid:D.pid,opt:{},profiles:roles,cv:(sh||got||{}).cv||{},pools:(sh||got||{}).pools||{}};D.opt.vHid=(sh||{}).vHid||((got||{}).opt||{}).vHid||{}}
   else if(got){D=got;D.cv=D.cv||{};D.pools=D.pools||{}}          // 旧格式：第一次保存时拆成每个角色一份（lastRole 空 → 全部写一次）
   else if(sh){D={pid:D.pid,opt:{vHid:sh.vHid||{}},profiles:{},cv:sh.cv||{},pools:sh.pools||{}}}
   if(sh)lastShared=JSON.stringify({v:2,cv:sh.cv||{},pools:sh.pools||{},vHid:sh.vHid||{}});
+  if(s&&s.exists)sharedBT=parseBT(s.data()||{})||{};
   /* 界面状态（本机）盖回去；旧格式里混在 D.opt 的界面状态第一次照用 */
   D.opt={...(got&&!Object.keys(roles).length?got.opt:{}),...(UI.opt||{}),vHid:(D.opt||{}).vHid||{}};
   if(UI.pid&&D.profiles[UI.pid])D.pid=UI.pid;
@@ -5004,7 +5157,8 @@ $('basePanel').addEventListener('change',e=>{const q=e.target.closest('[data-cal
 $('basePanel').addEventListener('click',e=>{const b=e.target.closest('[data-cq],[data-cqall]');if(!b)return;
   if(b.dataset.cqall){D.opt.calcAll=!D.opt.calcAll}else{const o=D.opt.calcOpen=D.opt.calcOpen||{};o[b.dataset.cq]=!o[b.dataset.cq]}
   drawBase();save()});
-$('tabs').onclick=e=>{const b=e.target.closest('[data-lo]');if(!b)return;P().active=b.dataset.lo;D.opt.refSch=null;D.opt.refVar=null;render()};
+$('tabs').onclick=e=>{const o=e.target.closest('[data-ord]');if(o){e.stopPropagation();moveTab(+o.dataset.ord);return}
+  const b=e.target.closest('[data-lo]');if(!b)return;P().active=b.dataset.lo;D.opt.refSch=null;D.opt.refVar=null;render()};
 
 /* ===== 新建角色 / 新增存档（用户 2026-11-03）===== */
 $('profNew').onclick=()=>{const f=$('profForm');
@@ -5201,10 +5355,10 @@ let armed=null;
 $('lib').addEventListener('click',async e=>{
   const cb=e.target.closest('[data-cy]');if(cb){doCy(cb.dataset.cy,cb);return}
   const mv=e.target.closest('[data-mv2]');
-  if(mv){const [id,lk]=mv.dataset.mv2.split('|'),it=byId(id),p=P(),L=(p.lo||{})[lk];if(!L||!it)return;
-    L.equip=L.equip||{};L.equip[it.slot]=id;
+  if(mv){const [id,lk,sl0]=mv.dataset.mv2.split('|'),it=byId(id),p=P(),L=(p.lo||{})[lk];if(!L||!it)return;
+    const sl=sl0||it.slot;L.equip=L.equip||{};L.equip[sl]=id;
     const nm=loName(lk);
-    $('libMsg').textContent=`已把 ${it.name||'无名'} 挂到${nm}的${slotName(it.slot)}`;render();return}
+    $('libMsg').textContent=`已把 ${it.name||'无名'} 挂到${nm}的${asTab(lk,()=>slotName(sl))}`;save();render();return}
   const ed=e.target.closest('[data-ed]'),dl=e.target.closest('[data-del]'),tg=e.target.closest('[data-tog]');
   if(tg){const k=tg.dataset.tog;D.opt.hid=D.opt.hid||{};D.opt.hid[k]=!D.opt.hid[k];drawLib();save();return}
   if(ed)return openEd(ed.dataset.ed);
@@ -5265,6 +5419,6 @@ connect();
 <footer style="max-width:1100px;margin:28px auto 18px;padding:0 16px;font-size:12px;color:var(--muted);line-height:1.7">
   非官方玩家自制工具，与《燕云十六声》官方无关；游戏名称、图标及相关商标归其权利人所有。<br>
   数据只存在你自己的浏览器里，不会上传到任何地方；换设备或清缓存前请先点页面顶部的「导出备份」（超过 7 天没备份会提醒）。<br>
-  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v265。
+  公式和数值来自玩家实测和社区资料，可能随版本变化，仅供参考。版本 v267。
 </footer>
 </html>
